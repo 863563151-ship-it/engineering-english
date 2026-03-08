@@ -63,6 +63,7 @@
     .detail-stack{display:grid;gap:14px;margin:16px 0}
     .note{border:1px solid var(--border);border-radius:18px;padding:16px;background:#fff}
     .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .nav-actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 6px}
     .section{display:none}
     .section.active{display:block}
     .card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
@@ -438,13 +439,22 @@ function exampleSentence(word){
 function renderDetail(){
   const w = state.selected;
   if(!w){ $('detailPanel').innerHTML = '<div class="small">请选择一个单词。手机上点选后会自动跳到下方的“单词详情”。</div>'; return; }
+  const list = filteredWords();
+  const idx = list.findIndex(item => item.key === w.key);
+  const prevDisabled = idx <= 0;
+  const nextDisabled = idx === -1 || idx >= list.length - 1;
   $('detailPanel').innerHTML = `
     <div class="hero-word">
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:start;flex-wrap:wrap;">
         <div><h3>${w.english}</h3><p>${w.chinese}</p></div>
-        <button class="btn secondary" onclick="speak('${w.english.replace(/'/g, "\\'")}')">🔊 发音</button>
+        <button class="btn secondary" onclick="speak('${w.english.replace(/'/g, "\'")}')">🔊 发音</button>
       </div>
       <div class="small" style="color:#cbd5e1;margin-top:12px;">${w.category}</div>
+    </div>
+    <div class="nav-actions">
+      <button class="btn secondary" ${prevDisabled ? 'disabled style="opacity:.45;cursor:not-allowed;"' : ''} onclick="goPrevWord()">上一个</button>
+      <button class="btn" ${nextDisabled ? 'disabled style="opacity:.45;cursor:not-allowed;"' : ''} onclick="goNextWord()">下一个</button>
+      <div class="small" style="align-self:center;margin-top:0;">当前第 ${idx >= 0 ? idx + 1 : 1} / ${list.length} 个</div>
     </div>
     <div class="detail-grid">
       <div class="note"><div class="small" style="margin-top:0;">词根分析</div><div style="margin-top:8px;font-weight:600;line-height:1.8;">${rootHint(w)}</div></div>
@@ -459,6 +469,16 @@ function renderDetail(){
       <button class="btn ghost" onclick="toggle('mastered', state.selected)">${hasIn(state.mastered,w) ? '取消掌握' : '标记掌握'}</button>
     </div>
   `;
+}
+function goPrevWord(){
+  const list = filteredWords();
+  const idx = list.findIndex(item => item.key === state.selected?.key);
+  if(idx > 0) selectWord(list[idx - 1].key);
+}
+function goNextWord(){
+  const list = filteredWords();
+  const idx = list.findIndex(item => item.key === state.selected?.key);
+  if(idx >= 0 && idx < list.length - 1) selectWord(list[idx + 1].key);
 }
 function renderSimpleGrid(targetId, items, emptyText, color=''){
   const el = $(targetId);
@@ -536,6 +556,8 @@ function renderAll(){
 window.selectWord = selectWord;
 window.toggle = toggle;
 window.speak = speak;
+window.goPrevWord = goPrevWord;
+window.goNextWord = goNextWord;
 
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
 $('searchInput').addEventListener('input', e => { state.query = e.target.value; renderWordList(); });
