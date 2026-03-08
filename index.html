@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>工程英语学习系统</title>
+
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="工程英语" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --primary:#0f172a;
+      --accent:#2563eb;
+      --accent2:#7c3aed;
+      --border:#e2e8f0;
+      --ok:#16a34a;
+      --warn:#dc2626;
+      --gold:#d97706;
+      --shadow:0 10px 30px rgba(15,23,42,.08);
+      --radius:20px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,"Microsoft YaHei",Arial,sans-serif;background:linear-gradient(180deg,#f8fafc 0%,#eef2ff 100%);color:var(--text)}
+    .wrap{max-width:1400px;margin:0 auto;padding:24px}
+    .hero{background:linear-gradient(135deg,#0f172a 0%,#1e293b 45%,#334155 100%);color:#fff;border-radius:28px;padding:28px;box-shadow:var(--shadow)}
+    .hero h1{margin:8px 0 10px;font-size:38px}
+    .hero p{margin:0;color:#dbeafe;max-width:860px;line-height:1.7}
+    .badge{display:inline-block;background:rgba(255,255,255,.12);padding:6px 12px;border-radius:999px;font-size:13px}
+    .toolbar{display:grid;grid-template-columns:1.5fr 1fr auto;gap:12px;margin-top:20px}
+    input,select,button,textarea{font:inherit}
+    .search,.select{background:#fff;border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:14px 16px;outline:none;width:100%}
+    .btn{border:none;border-radius:16px;padding:12px 18px;background:var(--accent);color:#fff;cursor:pointer;transition:.2s;box-shadow:0 6px 18px rgba(37,99,235,.2)}
+    .btn:hover{transform:translateY(-1px)}
+    .btn.secondary{background:#fff;color:var(--text);box-shadow:none;border:1px solid var(--border)}
+    .btn.ghost{background:#eef2ff;color:#1e3a8a;box-shadow:none}
+    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:22px 0}
+    .stat{background:var(--card);border-radius:22px;padding:20px;box-shadow:var(--shadow)}
+    .stat .label{color:var(--muted);font-size:14px}
+    .stat .value{font-size:34px;font-weight:800;margin-top:8px}
+    .main{display:grid;grid-template-columns:360px 1fr;gap:18px}
+    .panel{background:var(--card);border-radius:24px;box-shadow:var(--shadow);overflow:hidden}
+    .panel h2{margin:0;font-size:22px}
+    .panel-head{padding:20px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+    .panel-body{padding:18px 22px}
+    .tabs{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+    .tab{padding:10px 16px;border-radius:999px;background:#fff;border:1px solid var(--border);cursor:pointer}
+    .tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .word-list{max-height:760px;overflow:auto;padding:10px}
+    .word-item{border:1px solid var(--border);border-radius:18px;padding:14px 16px;margin-bottom:10px;cursor:pointer;background:#fff;transition:.2s}
+    .word-item:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+    .word-item.active{border-color:#0f172a;background:#f8fafc}
+    .word-title{font-size:20px;font-weight:700}
+    .word-sub{color:var(--muted);margin-top:4px}
+    .small{font-size:12px;color:var(--muted);margin-top:8px}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;margin-left:6px}
+    .pill.fav{background:#fff7ed;color:#9a3412}
+    .pill.wrong{background:#fef2f2;color:#991b1b}
+    .hero-word{background:linear-gradient(135deg,#111827,#1f2937);color:#fff;padding:24px;border-radius:24px}
+    .hero-word h3{margin:0;font-size:40px}
+    .hero-word p{margin:10px 0 0;color:#cbd5e1;font-size:20px}
+    .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+    .detail-stack{display:grid;gap:14px;margin:16px 0}
+    .note{border:1px solid var(--border);border-radius:18px;padding:16px;background:#fff}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .section{display:none}
+    .section.active{display:block}
+    .card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .mini-card{border:1px solid var(--border);border-radius:18px;padding:14px;background:#fff}
+    .progress-wrap{background:#e2e8f0;border-radius:999px;height:14px;overflow:hidden}
+    .progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%}
+    .practice-box{background:#f8fafc;border-radius:22px;padding:20px;margin:12px 0}
+    .practice-q{font-size:34px;font-weight:800}
+    .feedback{padding:14px 16px;border-radius:16px;margin-top:12px}
+    .ok{background:#f0fdf4;color:#166534}
+    .bad{background:#fef2f2;color:#991b1b}
+    .counts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .count-card{background:#f8fafc;border-radius:18px;padding:16px}
+    .category-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .cat-card{border:1px solid var(--border);border-radius:18px;padding:14px}
+    .footer-tip{margin-top:18px;color:var(--muted);font-size:14px}
+    @media (max-width:1100px){
+      .grid4,.card-grid{grid-template-columns:repeat(2,1fr)}
+      .main{grid-template-columns:1fr}
+    }
+    @media (max-width:760px){
+      .toolbar,.detail-grid,.counts,.category-grid,.grid4,.card-grid{grid-template-columns:1fr}
+      .hero h1{font-size:30px}
+      .practice-q,.hero-word h3{font-size:28px}
+      .wrap{padding:14px}
+    }
+
+    .hero{position:relative;overflow:hidden}
+    .tabs{position:sticky;top:0;z-index:30;background:rgba(245,247,251,.88);backdrop-filter:blur(10px);padding:10px 0 6px}
+    @supports (padding: max(0px)) {
+      body{padding-bottom:max(14px, env(safe-area-inset-bottom));}
+    }
+    @media (max-width:760px){
+      .hero{padding:22px 18px;border-radius:22px}
+      .badge{font-size:12px}
+      .hero h1{font-size:26px;line-height:1.2}
+      .hero p{font-size:14px;line-height:1.7}
+      .tab{padding:12px 16px;font-size:15px}
+      .panel-head h2{font-size:18px}
+      .word-list{max-height:none}
+      .hero-word{padding:18px;border-radius:20px}
+      .hero-word h3{font-size:24px}
+      .detail-card{padding:16px;border-radius:18px}
+      .action-row{display:flex;flex-wrap:wrap;gap:10px}
+      .action-row .btn{padding:11px 14px;border-radius:14px}
+      .practice-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .practice-actions .btn{width:100%}
+    }
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <span class="badge">Engineering English Learning Hub</span>
+      <h1>工程英语学习系统</h1>
+      <p>输入英文或中文快速检索，按专业分类学习，支持收藏、错词本、智能抽查、发音与学习进度统计。所有记录默认保存在你的浏览器本地。</p>
+      <div class="toolbar">
+        <input id="searchInput" class="search" placeholder="输入英文或中文，例如 beam / 梁" />
+        <select id="categorySelect" class="select"></select>
+        <button class="btn" id="reviewBtn">开始练习</button>
+      </div>
+    </div>
+
+    <div class="grid4" id="stats"></div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="dictionary">词典学习</div>
+      <div class="tab" data-tab="practice">抽查练习</div>
+      <div class="tab" data-tab="wrongbook">错词本</div>
+      <div class="tab" data-tab="favorites">收藏夹</div>
+    </div>
+
+    <div id="dictionary" class="section active">
+      <div class="main">
+        <div class="panel">
+          <div class="panel-head"><h2>检索结果 <span id="resultCount"></span></h2></div>
+          <div class="word-list" id="wordList"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>单词详情</h2></div>
+          <div class="panel-body" id="detailPanel"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="practice" class="section">
+      <div class="panel">
+        <div class="panel-head"><h2>智能抽查</h2></div>
+        <div class="panel-body">
+          <div class="actions" style="margin-bottom:12px;">
+            <button class="btn" id="modeEnCn">英 → 中</button>
+            <button class="btn secondary" id="modeCnEn">中 → 英</button>
+            <button class="btn ghost" id="wrongFirstBtn">优先错词练习</button>
+          </div>
+          <div class="practice-box">
+            <div style="color:var(--muted);margin-bottom:8px;">当前题目</div>
+            <div class="practice-q" id="practiceQuestion">点击“开始练习”</div>
+            <div style="margin-top:8px;color:var(--muted);">队列剩余：<span id="queueLeft">0</span></div>
+          </div>
+          <input id="practiceAnswer" class="search" placeholder="请输入答案" style="margin-bottom:12px;" />
+          <div class="actions">
+            <button class="btn" id="submitAnswer">提交答案</button>
+            <button class="btn secondary" id="nextQuestion">下一题</button>
+            <button class="btn secondary" id="clearAnswer">清空</button>
+          </div>
+          <div id="practiceFeedback"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="wrongbook" class="section">
+      <div class="panel">
+        <div class="panel-head"><h2>错词本</h2></div>
+        <div class="panel-body"><div class="card-grid" id="wrongGrid"></div></div>
+      </div>
+    </div>
+
+    <div id="favorites" class="section">
+      <div class="panel">
+        <div class="panel-head"><h2>收藏夹</h2></div>
+        <div class="panel-body"><div class="card-grid" id="favGrid"></div></div>
+      </div>
+
+    <div class="panel" style="margin-bottom:18px;">
+      <div class="panel-head"><h2>分类概览与学习进度</h2></div>
+      <div class="panel-body" style="display:grid;grid-template-columns:1.3fr .9fr;gap:18px;">
+        <div>
+          <div class="category-grid" id="categoryOverview"></div>
+        </div>
+        <div>
+          <div style="margin-bottom:10px;display:flex;justify-content:space-between;"><span>掌握进度</span><strong id="progressText">0%</strong></div>
+          <div class="progress-wrap"><div class="progress-bar" id="masteryBar"></div></div>
+          <div class="counts" style="margin-top:16px;">
+            <div class="count-card"><div style="color:var(--muted)">待复习</div><div id="wrongCount" style="font-size:30px;font-weight:800;">0</div></div>
+            <div class="count-card"><div style="color:var(--muted)">收藏夹</div><div id="favCount" style="font-size:30px;font-weight:800;">0</div></div>
+          </div>
+          <div class="footer-tip">建议：每天复习错词本，再抽查 20 个高频工程词，记忆更牢。</div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+  </div>
+
+<script>
+const vocabData = [
+  { category: "土建结构篇", key: "structure", words: [["Foundation","基础"],["Beam","梁"],["Column","柱"],["Slab","板"],["Wall","墙"],["Bracing","支撑"],["Shear wall","剪力墙"],["Retaining wall","挡土墙"],["Reinforcement","钢筋"],["Reinforced concrete","钢筋混凝土"],["Concrete mix","混凝土配合比"],["Formwork","模板"],["Prestressed concrete","预应力混凝土"],["Tension","拉力"],["Compression","压力"],["Cantilever","悬挑"],["Arch","拱"],["Truss","桁架"],["Girder","横梁"],["Pier","桥墩"],["Deck","桥面"],["Joint","连接点"],["Bearing","支座"],["Load","荷载"],["Dead load","自重荷载"],["Live load","活载荷载"],["Wind load","风荷载"],["Seismic load","地震荷载"],["Design code","设计规范"]] },
+  { category: "土建测量篇", key: "surveying", words: [["Surveying","测量学"],["Topography","地形测量学"],["GPS","全球定位系统"],["Geodetic surveying","大地测量"],["Levelling","水准测量"],["Triangulation","三角测量"],["Theodolite","经纬仪"],["Total station","全站仪"],["Electronic distance measurement (EDM)","电子距离测量"],["Angle measurement","角度测量"],["Distance measurement","距离测量"],["Horizontal distance","水平距离"],["Vertical distance","垂直距离"],["Measuring tape","测量卷尺"],["Chain","链子"],["Transverse profile","横断面"],["Longitudinal profile","纵断面"],["Cross section","剖面图"],["Bench mark","基准点"],["Contour","等高线"],["Grid","网格"],["Point of beginning (POB)","起点"],["Traverse","测量路线"],["Control point","控制点"],["Sounding","深度测量"]] },
+  { category: "土建图纸篇", key: "drawings", words: [["Plan","平面图"],["Elevation","立面图"],["Section","剖面图"],["Detail","细节图"],["Scale","比例尺"],["Dimension","尺寸"],["Legend","图例"],["Title block","图框"],["North arrow","指北针"],["Grid","网格"],["Hatch","阴影填充"],["Annotation","注释"],["Symbol","符号"],["Perspective","透视图"],["Isometric","等轴测图"],["Orthographic","正交投影"],["Foundation plan","基础平面图"],["Framing plan","结构平面图"],["Electrical plan","电气平面图"],["Plumbing plan","给排水平面图"],["Reflected ceiling plan","天花板反射平面图"],["Roof plan","屋顶平面图"],["Site plan","场地平面图"],["Topographic map","地形图"],["Keynote","说明文字"],["Revision cloud","修订标记"],["Leader line","引线"],["Detail bubble","细节标记圆圈"]] },
+  { category: "基础施工工艺篇", key: "foundation-process", words: [["Excavation","开挖"],["Foundation","基础"],["Footing","地基基础"],["Piling","桩基础"],["Formwork","模板"],["Reinforcement","钢筋"],["Concrete","混凝土"],["Masonry","砌体工程"],["Brickwork","砖工程"],["Blockwork","砌块工程"],["Plastering","抹灰"],["Screed","找平层"],["Waterproofing","防水"],["Damp proofing","防潮"],["Drainage","排水"],["Backfilling","回填"],["Compaction","压实"],["Grouting","灌浆"],["Curing","养护"],["Demolition","拆除"],["Shoring","支撑"],["Underpinning","加固"],["Dredging","疏浚"],["Blasting","爆破"],["Trenching","沟槽开挖"]] },
+  { category: "混凝土施工工艺篇", key: "concrete-process", words: [["Concrete mix","混凝土配合比"],["Reinforcement","钢筋加固"],["Formwork","模板"],["Curing","养护"],["Aggregate","骨料"],["Batching plant","配料站"],["Ready-mix concrete","预拌混凝土"],["Admixture","外加剂"],["Placing","浇筑"],["Finishing","表面处理"],["Screeding","刮平"],["Compaction","振捣"],["Slump test","塌落度试验"],["Pumping","泵送"],["Vibration","振动"],["Retarder","缓凝剂"],["Accelerator","加速剂"],["Compressive strength","抗压强度"],["Troweling","抹面"],["Shotcrete","喷射混凝土"],["Pre-stressed concrete","预应力混凝土"],["Post-tensioned concrete","后张拉混凝土"],["Joint","焊缝"],["Reinforced concrete","钢筋混凝土"],["Grout","灌浆"]] },
+  { category: "砌体施工工艺篇", key: "masonry", words: [["Masonry","砌体"],["Brick","砖"],["Block","砌块"],["Mortar","砂浆"],["Joint","砌缝"],["Bed joint","底缝"],["Head joint","顶缝"],["Lintel","窗楣"],["Sill","窗台"],["Bond","砌缝结合"],["Cavity","空腔"],["Weep hole","排水孔"],["Level","平整度"],["Plumb","垂直度"],["Square","方正度"],["Trowel","镘刀"],["Brick hammer","砖锤"],["Chisel","锤子凿"],["Jointer","砌缝工具"],["Bricklayer","砌筑工"],["Masonry saw","砌体锯"],["Corner block","角块"],["Brick tie","砖柱钢筋"],["Reinforced brick masonry","加筋砖砌体"],["Hollow brick masonry","中空砖砌体"]] },
+  { category: "钢结构施工工艺篇", key: "steel", words: [["Steel structure","钢结构"],["Welding","焊接"],["Bolt","螺栓"],["Nut","螺母"],["Washer","垫圈"],["Connection","连接"],["Column","柱"],["Beam","梁"],["Truss","桁架"],["Bracing","支撑"],["Crane","起重机"],["Hoist","起重机"],["Lifting lug","吊环"],["Welding machine","焊接机"],["Cutting machine","切割机"],["Drilling machine","钻孔机"],["Angle grinder","角磨机"],["Steel plate","钢板"],["Steel pipe","钢管"],["Steel bar","钢筋"],["Steel mesh","钢网"],["Concrete foundation","混凝土基础"],["Steel erection","钢结构安装"],["Steel surface treatment","钢结构表面处理"],["Steel painting","钢结构喷涂"]] },
+  { category: "屋面施工工艺篇", key: "roofing", words: [["Roofing","屋顶覆盖材料"],["Shingle","木瓦"],["Tile","瓦片"],["Metal roofing","金属屋顶"],["Flat roof","平屋顶"],["Pitched roof","斜屋顶"],["Roof membrane","屋面膜"],["Underlayment","防水层"],["Flashing","防水挡水板"],["Ridge vent","脊线通风口"],["Gutters","排水沟"],["Downspouts","雨水管"],["Eaves","檐口"],["Soffit","檐板"],["Fascia","外檐条"],["Drip edge","滴水边缘"],["Ice dam","结冰堵塞"],["Roof decking","屋面基层"],["Roof truss","屋架"],["Rafters","椽子"],["Joists","托架"],["Roof sheathing","屋面板材"],["Ventilation","通风"],["Skylights","天窗"],["Chimney","烟囱"],["Gable","山墙"],["Dormer","屋面窗"],["Valley","屋面谷槽"],["Hip","屋脊"],["Ridge","脊线"]] },
+  { category: "土建机械设备篇", key: "equipment", words: [["Excavator","挖掘机"],["Bulldozer","推土机"],["Crane","起重机"],["Backhoe loader","挖掘装载机"],["Concrete mixer truck","混凝土搅拌车"],["Tower crane","塔式起重机"],["Paver","铺路机"],["Road roller","压路机"],["Skid steer loader","小型装载机"],["Forklift","叉车"],["Crawler crane","履带式起重机"],["Aerial work platform","高空作业平台"],["Wheel loader","轮式装载机"],["Concrete pump","混凝土泵车"],["Roadheader","掘进机"],["Tunnel boring machine","隧道掘进机"],["Asphalt distributor","沥青配料车"],["Road marking machine","道路标线机"],["Shotcrete machine","喷射混凝土机"],["Concrete placing boom","混凝土送泵臂"],["Vibratory hammer","振动锤"],["Grader","平地机"],["Scraper","刮板机"],["Demolition hammer","拆除锤"],["Mobile crane","移动式起重机"]] },
+  { category: "土建质量管理篇", key: "quality", words: [["Inspection and Test Plan (ITP)","检验与测试计划"],["Quality Control (QC)","质量控制"],["Quality Assurance (QA)","质量保证"],["Non-Conformance Report (NCR)","不符合报告"],["Material Test Report (MTR)","材料测试报告"],["Welding Procedure Specification (WPS)","焊接工艺规范书"],["Welder Qualification Test (WQT)","焊工资格试验"],["Dimensional Inspection Report (DIR)","尺寸检验报告"],["Concrete Compressive Strength Test","混凝土抗压强度试验"],["Steel Tensile Strength Test","钢材拉伸强度试验"],["Ultrasonic Testing (UT)","超声波检测"],["Magnetic Particle Testing (MPT)","磁粉检测"],["Liquid Penetrant Testing (LPT)","渗透检测"],["Radiographic Testing (RT)","射线检测"],["Visual Inspection (VI)","目视检查"],["Holiday Testing","阴极保护检测"],["Coating Thickness Test","涂层厚度测试"],["Pull Out Test","拉拔试验"],["Shear Test","剪切试验"],["Moment Test","弯矩试验"],["Deflection Test","变形试验"],["Load Test","荷载试验"],["Rebound Hammer Test","反弹锤试验"],["Water Absorption Test","吸水试验"],["Air Permeability Test","透气性试验"],["Sound Insulation Test","隔声试验"],["Fire Resistance Test","防火性试验"],["Moisture Content Test","含水率试验"],["Density Test","密度试验"],["Drying Shrinkage Test","干缩试验"]] }
+];
+
+const flattenWords = vocabData.flatMap(group => group.words.map(([english, chinese]) => ({
+  english, chinese, category: group.category, key: `${group.key}-${english}`.toLowerCase()
+})));
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(key, fallback){ try{ return JSON.parse(localStorage.getItem(key)) ?? fallback }catch{return fallback}},
+  set(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+};
+
+let state = {
+  query: '',
+  category: 'all',
+  selected: flattenWords[0],
+  favorites: store.get('eng_favorites', []),
+  wrongWords: store.get('eng_wrong_words', []),
+  mastered: store.get('eng_mastered_words', []),
+  practiceMode: 'en-to-cn',
+  reviewQueue: [],
+};
+
+function filteredWords(){
+  return flattenWords.filter(item => {
+    const categoryMatch = state.category === 'all' || item.category === state.category;
+    const q = state.query.trim().toLowerCase();
+    const textMatch = !q || item.english.toLowerCase().includes(q) || item.chinese.includes(state.query);
+    return categoryMatch && textMatch;
+  });
+}
+function hasIn(list, item){ return list.some(x => x.key === item.key); }
+function toggle(listName, item){
+  const list = state[listName];
+  state[listName] = hasIn(list, item) ? list.filter(x => x.key !== item.key) : [item, ...list];
+  saveAll();
+  renderAll();
+}
+function saveAll(){
+  store.set('eng_favorites', state.favorites);
+  store.set('eng_wrong_words', state.wrongWords);
+  store.set('eng_mastered_words', state.mastered);
+}
+function speak(text){
+  if(!('speechSynthesis' in window)) return alert('当前浏览器不支持发音功能');
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US';
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+function renderCategories(){
+  $('categorySelect').innerHTML = '<option value="all">全部分类</option>' + vocabData.map(v => `<option value="${v.category}">${v.category}</option>`).join('');
+  $('categorySelect').value = state.category;
+  $('categoryOverview').innerHTML = vocabData.map(v => `
+    <div class="cat-card">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+        <strong>${v.category}</strong><span class="pill fav">${v.words.length}</span>
+      </div>
+      <div class="small">适合结合图纸、施工方案、会议纪要记忆。</div>
+    </div>`).join('');
+}
+function renderStats(){
+  const total = flattenWords.length;
+  const fav = state.favorites.length;
+  const wrong = state.wrongWords.length;
+  const mastered = state.mastered.length;
+  const progress = Math.round((mastered / total) * 100);
+  $('stats').innerHTML = [
+    ['总词数', total], ['收藏词', fav], ['错词本', wrong], ['已掌握', mastered]
+  ].map(([label, value]) => `<div class="stat"><div class="label">${label}</div><div class="value">${value}</div></div>`).join('');
+  $('wrongCount').textContent = wrong;
+  $('favCount').textContent = fav;
+  $('progressText').textContent = progress + '%';
+  $('masteryBar').style.width = progress + '%';
+}
+function renderWordList(){
+  const list = filteredWords();
+  $('resultCount').textContent = `(${list.length})`;
+  $('wordList').innerHTML = list.map(item => `
+    <div class="word-item ${state.selected && state.selected.key === item.key ? 'active' : ''}" onclick="selectWord('${item.key}')">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:start;">
+        <div>
+          <div class="word-title">${item.english}</div>
+          <div class="word-sub">${item.chinese}</div>
+        </div>
+        <div>
+          ${hasIn(state.favorites, item) ? '<span class="pill fav">收藏</span>' : ''}
+          ${hasIn(state.wrongWords, item) ? '<span class="pill wrong">错词</span>' : ''}
+        </div>
+      </div>
+      <div class="small">${item.category}</div>
+    </div>
+  `).join('') || '<div class="small">没有找到相关单词。</div>';
+}
+function memoryHint(word){
+  return `把“${word.english}”放进真实工程场景中去记，比如图纸、施工工艺、技术交底、现场检查表或质量报告。`;
+}
+function explainRootPart(part){
+  const lower = part.toLowerCase();
+  const rootMap = {
+    shear: 'shear：表示“剪切、切断”，工程里常指材料在受力后发生剪切作用。',
+    wall: 'wall：表示“墙体”。',
+    retain: 'retain：表示“保持、 удерж住 / 挡住”，retaining 常引申为“挡住土体或侧向压力”。',
+    reinforce: 'reinforce = re(再次) + force(力量)，表示“加强、加固”。',
+    concrete: 'concrete：本义是“凝结成实体的”，工程里就是“混凝土”。',
+    found: 'found：表示“建立、奠基”，foundation 即“基础、地基”。',
+    beam: 'beam：表示“梁、横梁”。',
+    column: 'column：表示“柱、立柱”。',
+    slab: 'slab：表示“板、厚板”。',
+    brace: 'brace：表示“支撑、撑住”，bracing 指支撑体系。',
+    form: 'form：表示“形成、模子、形状”，formwork 就是“成型用的模板”。',
+    work: 'work：表示“作业、工作”。',
+    pre: 'pre：前、预先。',
+    stress: 'stress：表示“应力、受力”。',
+    compress: 'compress = com(共同) + press(压)，引申为“压缩、受压”。',
+    pressure: 'press：表示“压”。',
+    arch: 'arch：表示“拱”。',
+    truss: 'truss：表示“桁架、支撑框架”。',
+    girder: 'girder：表示“大梁、主梁”。',
+    pier: 'pier：表示“桥墩、支承墩”。',
+    deck: 'deck：表示“面层、甲板”，桥梁里常指桥面。',
+    joint: 'joint：表示“连接处、接头”。',
+    bear: 'bear：表示“承受”，bearing 即“承载/支承构件”。',
+    load: 'load：表示“荷载、负荷”。',
+    survey: 'survey：表示“测量、勘测”。',
+    level: 'level：表示“水平、标高”。',
+    geo: 'geo：表示“地球、地面”。',
+    graph: 'graph：表示“写、画、记录”。',
+    topo: 'topo：表示“地点、地形”。',
+    plan: 'plan：表示“平面、计划”。',
+    section: 'section：表示“切开后的部分”，图纸里就是“剖面”。',
+    detail: 'detail：表示“细部、详图”。',
+    dimension: 'dimension：表示“尺寸、维度”。',
+    note: 'note：表示“注记、说明”。',
+    revise: 're(再次) + vise/vid(看)；revision 可理解为“再次查看后修改”。',
+    excavate: 'excavate：表示“向外挖出”，即开挖。',
+    pile: 'pile：表示“桩、堆”，piling 指桩基础施工。',
+    mason: 'mason：表示“石工、砌筑工”，masonry 引申为砌体工程。',
+    water: 'water：表示“水”。',
+    proof: 'proof：表示“防护、抵抗”，waterproofing 即防水。',
+    drain: 'drain：表示“排出”，drainage 即排水。',
+    back: 'back：表示“向后、回填回去”。',
+    fill: 'fill：表示“填充”。',
+    compact: 'compact：表示“压实、紧密”。',
+    cure: 'cure：表示“养护、使达到稳定状态”。',
+    steel: 'steel：表示“钢”。',
+    weld: 'weld：表示“焊接”。',
+    bolt: 'bolt：表示“螺栓”。',
+    nut: 'nut：表示“螺母”。',
+    roof: 'roof：表示“屋面、屋顶”。',
+    under: 'under：表示“在下方”。',
+    lay: 'lay：表示“铺设”。',
+    flash: 'flash 在建筑里常引申为“快速导水的薄金属泛水件”。',
+    vent: 'vent：表示“通风口、排气”。',
+    crane: 'crane：表示“起重机”。',
+    quality: 'quality：表示“质量、品质”。',
+    inspect: 'inspect = in(进入) + spect(看)，表示“检查”。',
+    assure: 'assure：表示“确保、保证”，assurance 是保证。',
+    test: 'test：表示“测试、试验”。',
+    ultra: 'ultra：表示“超”。',
+    sonic: 'sonic：表示“声音”，ultrasonic 即“超声波”。',
+    radio: 'radio：表示“射线/辐射”。',
+    visual: 'visual：表示“视觉的、目视的”。',
+    density: 'density：表示“密度”。'
+  };
+  if(rootMap[lower]) return rootMap[lower];
+  return '';
+}
+function rootHint(word){
+  const english = word.english;
+  const lower = english.toLowerCase();
+  const directMap = {
+    'shear wall': 'Shear wall 可拆成 shear + wall。shear 表示“剪切”，wall 表示“墙体”，合起来就是“主要抵抗剪力的墙”，所以翻译为“剪力墙”。',
+    'retaining wall': 'Retaining wall 可拆成 retain + ing + wall。retain 表示“挡住、保持住”，-ing 表示进行/性质，wall 表示“墙体”，所以是“用来挡住土体的墙”，即“挡土墙”。',
+    'reinforced concrete': 'Reinforced concrete 可拆成 reinforce + d + concrete。reinforce 表示“加固”，concrete 表示“混凝土”，合起来就是“被钢筋等增强后的混凝土”，即“钢筋混凝土/配筋混凝土”。',
+    'formwork': 'Formwork 可拆成 form + work。form 表示“形成形状、模子”，work 表示“作业/构造物”，合起来就是“让混凝土成型的临时构造”，即“模板”。',
+    'foundation': 'Foundation 来自 found（奠基、建立）+ ation（名词后缀），表示建筑物最先“立住”的部分，所以是“基础”。',
+    'surveying': 'Surveying 来自 survey（测量、勘测）+ ing（过程），本质就是“进行测量这件事”，即“测量/测量学”。',
+    'waterproofing': 'Waterproofing 可拆成 water + proof + ing，字面就是“防住水的处理过程”，所以是“防水”。',
+    'backfilling': 'Backfilling 可拆成 back + fill + ing，表示“把材料再填回去”，所以是“回填”。',
+    'compression': 'Compression 来自 com + press + ion，核心是 press“压”，所以 compression 就是“受压、压缩”，即“压力/压缩作用”。',
+    'prestressed concrete': 'Prestressed concrete 可拆成 pre + stress + ed + concrete。pre 表示“预先”，stress 表示“应力”，即“预先施加应力的混凝土”，所以是“预应力混凝土”。'
+  };
+  if(directMap[lower]) return directMap[lower];
+  if(english.includes(' ')){
+    const parts = english.split(/\s+/).map(p => p.replace(/[^a-zA-Z-]/g,'')).filter(Boolean);
+    const explanations = parts.map(explainRootPart).filter(Boolean);
+    if(explanations.length){
+      return `${english} 可以按组成部分来记：${explanations.join(' ')} 合起来再结合工程场景理解这个词。`;
+    }
+  }
+  const heuristics = [
+    [/form/i, '这个词里有 form，通常和“形状、成型、模子”有关。'],
+    [/struct/i, '这个词里有 struct，常和“建造、结构、构造”有关。'],
+    [/press|stress/i, '这个词里有 press / stress，通常和“压、应力、受力”有关。'],
+    [/load/i, '这个词里有 load，直接联想到“荷载、负荷”。'],
+    [/survey/i, '这个词里有 survey，直接联想到“测量、勘测”。'],
+    [/test/i, '这个词里有 test，通常表示“试验、检测”。'],
+    [/steel/i, '这个词里有 steel，直接联想到“钢”。'],
+    [/concrete/i, '这个词里有 concrete，直接联想到“混凝土”。'],
+    [/wall/i, '这个词里有 wall，直接联想到“墙体”。'],
+    [/roof/i, '这个词里有 roof，直接联想到“屋面、屋顶”。']
+  ];
+  for (const [regex, text] of heuristics){
+    if(regex.test(lower)) return `${text} 再结合本专业语境去记，会更牢。`;
+  }
+  return `这个词更适合采用“整体词义 + 所属专业分类 + 工程场景”来记忆。对于 ${word.english}，建议直接放到 ${word.category} 的真实语境中理解。`;
+}
+function exampleSentence(word){
+  const examples = {
+    'shear wall': 'The engineer checked the reinforcement details of the shear wall before concrete pouring.',
+    'retaining wall': 'A retaining wall was built to prevent the soil from sliding onto the road.',
+    'reinforced concrete': 'The main frame of the building is made of reinforced concrete.',
+    'formwork': 'The formwork must be cleaned and aligned before casting concrete.',
+    'foundation': 'The foundation must be completed before the columns are erected.',
+    'beam': 'The beam transfers the load from the slab to the columns.',
+    'column': 'Each column was inspected before the steel beam installation started.',
+    'slab': 'The slab thickness should match the drawing requirements.',
+    'surveying': 'Surveying work should be finished before excavation begins.',
+    'excavation': 'Excavation started after the site boundaries were marked out.',
+    'waterproofing': 'Waterproofing is required in all underground concrete structures.',
+    'welding': 'All welding shall be carried out in accordance with the approved WPS.',
+    'inspection and test plan (itp)': 'The contractor submitted the Inspection and Test Plan before site work began.'
+  };
+  const lower = word.english.toLowerCase();
+  if(examples[lower]) return examples[lower];
+  if(word.category.includes('图纸')) return `Please check the ${word.english} carefully on the latest drawing before construction starts.`;
+  if(word.category.includes('测量')) return `The survey team used ${word.english} during the site measurement work.`;
+  if(word.category.includes('质量')) return `The ${word.english} should be completed and signed before the next activity begins.`;
+  if(word.category.includes('机械设备')) return `The operator checked the ${word.english} before the lifting operation started.`;
+  if(word.category.includes('施工工艺')) return `${word.english} is an important step in the construction process.`;
+  return `The engineer discussed the ${word.english} during the technical meeting.`;
+}
+function renderDetail(){
+  const w = state.selected;
+  if(!w){ $('detailPanel').innerHTML = '<div class="small">请选择一个单词。</div>'; return; }
+  $('detailPanel').innerHTML = `
+    <div class="hero-word">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:start;flex-wrap:wrap;">
+        <div><h3>${w.english}</h3><p>${w.chinese}</p></div>
+        <button class="btn secondary" onclick="speak('${w.english.replace(/'/g, "\\'")}')">🔊 发音</button>
+      </div>
+      <div class="small" style="color:#cbd5e1;margin-top:12px;">${w.category}</div>
+    </div>
+    <div class="detail-grid">
+      <div class="note"><div class="small" style="margin-top:0;">词根分析</div><div style="margin-top:8px;font-weight:600;line-height:1.8;">${rootHint(w)}</div></div>
+      <div class="note"><div class="small" style="margin-top:0;">记忆建议</div><div style="margin-top:8px;font-weight:600;line-height:1.8;">${memoryHint(w)}</div></div>
+    </div>
+    <div class="detail-stack">
+      <div class="note"><div class="small" style="margin-top:0;">例句</div><div style="margin-top:8px;font-weight:600;line-height:1.8;">${exampleSentence(w)}</div><div class="small" style="margin-top:10px;">建议你先读英文例句，再尝试自己翻译成中文。</div></div>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="toggle('favorites', state.selected)">${hasIn(state.favorites,w) ? '取消收藏' : '加入收藏'}</button>
+      <button class="btn secondary" onclick="toggle('wrongWords', state.selected)">${hasIn(state.wrongWords,w) ? '移出错词本' : '加入错词本'}</button>
+      <button class="btn ghost" onclick="toggle('mastered', state.selected)">${hasIn(state.mastered,w) ? '取消掌握' : '标记掌握'}</button>
+    </div>
+  `;
+}
+function renderSimpleGrid(targetId, items, emptyText, color=''){
+  const el = $(targetId);
+  el.innerHTML = items.length ? items.map(item => `
+    <div class="mini-card" style="${color}">
+      <div style="font-size:20px;font-weight:700;">${item.english}</div>
+      <div class="word-sub">${item.chinese}</div>
+      <div class="small">${item.category}</div>
+    </div>`).join('') : `<div class="small">${emptyText}</div>`;
+}
+function buildReviewQueue(wrongFirst=false){
+  const source = wrongFirst && state.wrongWords.length ? [...state.wrongWords] : [...filteredWords()].slice(0,20);
+  state.reviewQueue = source.sort(() => Math.random() - 0.5);
+  state.selected = state.reviewQueue[0] || flattenWords[0];
+  $('practiceAnswer').value = '';
+  $('practiceFeedback').innerHTML = '';
+  renderPractice();
+  renderWordList();
+  renderDetail();
+}
+function renderPractice(){
+  const current = state.reviewQueue[0];
+  $('practiceQuestion').textContent = current ? (state.practiceMode === 'en-to-cn' ? current.english : current.chinese) : '点击“开始练习”';
+  $('queueLeft').textContent = state.reviewQueue.length;
+}
+function checkAnswer(){
+  const current = state.reviewQueue[0];
+  if(!current) return;
+  const ans = $('practiceAnswer').value.trim().toLowerCase();
+  const target = (state.practiceMode === 'en-to-cn' ? current.chinese : current.english).trim().toLowerCase();
+  if(ans === target){
+    $('practiceFeedback').innerHTML = `<div class="feedback ok">回答正确</div>`;
+    if(!hasIn(state.mastered, current)) state.mastered.unshift(current);
+    state.wrongWords = state.wrongWords.filter(x => x.key !== current.key);
+  }else{
+    $('practiceFeedback').innerHTML = `<div class="feedback bad">回答错误，正确答案：${state.practiceMode === 'en-to-cn' ? current.chinese : current.english}</div>`;
+    if(!hasIn(state.wrongWords, current)) state.wrongWords.unshift(current);
+  }
+  saveAll();
+  renderStats();
+  renderSimpleGrid('wrongGrid', state.wrongWords, '还没有错词，继续保持。');
+}
+function nextQuestion(){
+  if(state.reviewQueue.length <= 1){ buildReviewQueue(false); return; }
+  state.reviewQueue.shift();
+  $('practiceAnswer').value = '';
+  $('practiceFeedback').innerHTML = '';
+  renderPractice();
+}
+function selectWord(key){
+  state.selected = flattenWords.find(x => x.key === key);
+  renderWordList();
+  renderDetail();
+}
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === tab));
+}
+function renderAll(){
+  renderCategories();
+  renderStats();
+  renderWordList();
+  renderDetail();
+  renderSimpleGrid('wrongGrid', state.wrongWords, '还没有错词，继续保持。');
+  renderSimpleGrid('favGrid', state.favorites, '你还没有收藏单词。');
+  renderPractice();
+}
+
+window.selectWord = selectWord;
+window.toggle = toggle;
+window.speak = speak;
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+$('searchInput').addEventListener('input', e => { state.query = e.target.value; renderWordList(); });
+$('categorySelect').addEventListener('change', e => { state.category = e.target.value; renderWordList(); });
+$('reviewBtn').addEventListener('click', () => { switchTab('practice'); buildReviewQueue(false); });
+$('wrongFirstBtn').addEventListener('click', () => buildReviewQueue(true));
+$('modeEnCn').addEventListener('click', () => { state.practiceMode='en-to-cn'; $('modeEnCn').className='btn'; $('modeCnEn').className='btn secondary'; renderPractice(); });
+$('modeCnEn').addEventListener('click', () => { state.practiceMode='cn-to-en'; $('modeCnEn').className='btn'; $('modeEnCn').className='btn secondary'; renderPractice(); });
+$('submitAnswer').addEventListener('click', checkAnswer);
+$('nextQuestion').addEventListener('click', nextQuestion);
+$('clearAnswer').addEventListener('click', () => $('practiceAnswer').value='');
+$('practiceAnswer').addEventListener('keydown', e => { if(e.key === 'Enter') checkAnswer(); });
+
+renderAll();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+</script>
+</body>
+</html>
