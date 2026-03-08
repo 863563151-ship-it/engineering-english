@@ -4,14 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>工程英语学习系统</title>
-
-  <meta name="theme-color" content="#0f172a" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="工程英语" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icons/icon-180.png" />
-
   <style>
     :root{
       --bg:#f5f7fb;
@@ -96,30 +88,12 @@
       .hero h1{font-size:30px}
       .practice-q,.hero-word h3{font-size:28px}
       .wrap{padding:14px}
+      .main{grid-template-columns:1fr}
+      #detailCard{order:1}
+      #listPanel{order:2}
+      .word-list{max-height:none;overflow:visible}
+      .actions{flex-wrap:wrap}
     }
-
-    .hero{position:relative;overflow:hidden}
-    .tabs{position:sticky;top:0;z-index:30;background:rgba(245,247,251,.88);backdrop-filter:blur(10px);padding:10px 0 6px}
-    @supports (padding: max(0px)) {
-      body{padding-bottom:max(14px, env(safe-area-inset-bottom));}
-    }
-    @media (max-width:760px){
-      .hero{padding:22px 18px;border-radius:22px}
-      .badge{font-size:12px}
-      .hero h1{font-size:26px;line-height:1.2}
-      .hero p{font-size:14px;line-height:1.7}
-      .tab{padding:12px 16px;font-size:15px}
-      .panel-head h2{font-size:18px}
-      .word-list{max-height:none}
-      .hero-word{padding:18px;border-radius:20px}
-      .hero-word h3{font-size:24px}
-      .detail-card{padding:16px;border-radius:18px}
-      .action-row{display:flex;flex-wrap:wrap;gap:10px}
-      .action-row .btn{padding:11px 14px;border-radius:14px}
-      .practice-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-      .practice-actions .btn{width:100%}
-    }
-
   </style>
 </head>
 <body>
@@ -146,11 +120,11 @@
 
     <div id="dictionary" class="section active">
       <div class="main">
-        <div class="panel">
+        <div class="panel" id="listPanel">
           <div class="panel-head"><h2>检索结果 <span id="resultCount"></span></h2></div>
           <div class="word-list" id="wordList"></div>
         </div>
-        <div class="panel">
+        <div class="panel" id="detailCard">
           <div class="panel-head"><h2>单词详情</h2></div>
           <div class="panel-body" id="detailPanel"></div>
         </div>
@@ -463,7 +437,7 @@ function exampleSentence(word){
 }
 function renderDetail(){
   const w = state.selected;
-  if(!w){ $('detailPanel').innerHTML = '<div class="small">请选择一个单词。</div>'; return; }
+  if(!w){ $('detailPanel').innerHTML = '<div class="small">请选择一个单词。手机上点选后会自动跳到下方的“单词详情”。</div>'; return; }
   $('detailPanel').innerHTML = `
     <div class="hero-word">
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:start;flex-wrap:wrap;">
@@ -538,6 +512,12 @@ function selectWord(key){
   state.selected = flattenWords.find(x => x.key === key);
   renderWordList();
   renderDetail();
+  if(window.innerWidth <= 760){
+    requestAnimationFrame(() => {
+      const card = $('detailCard');
+      if(card) card.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  }
 }
 function switchTab(tab){
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
@@ -570,13 +550,6 @@ $('clearAnswer').addEventListener('click', () => $('practiceAnswer').value='');
 $('practiceAnswer').addEventListener('keydown', e => { if(e.key === 'Enter') checkAnswer(); });
 
 renderAll();
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  });
-}
-
 </script>
 </body>
 </html>
