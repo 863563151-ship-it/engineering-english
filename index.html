@@ -102,7 +102,7 @@
     <div class="hero">
       <span class="badge">Engineering English Learning Hub</span>
       <h1>工程英语学习系统</h1>
-      <p>输入英文或中文快速检索，按专业分类学习，支持收藏、错词本、智能抽查、发音与学习进度统计。所有记录默认保存在你的浏览器本地。</p>
+      <p>输入英文或中文快速检索，按专业分类学习，支持错词本、智能抽查、发音与学习进度统计。所有记录默认保存在你的浏览器本地。</p>
       <div class="toolbar">
         <input id="searchInput" class="search" placeholder="输入英文或中文，例如 beam / 梁" />
         <select id="categorySelect" class="select"></select>
@@ -116,7 +116,6 @@
       <div class="tab active" data-tab="dictionary">词典学习</div>
       <div class="tab" data-tab="practice">抽查练习</div>
       <div class="tab" data-tab="wrongbook">错词本</div>
-      <div class="tab" data-tab="favorites">收藏夹</div>
     </div>
 
     <div id="dictionary" class="section active">
@@ -164,12 +163,6 @@
       </div>
     </div>
 
-    <div id="favorites" class="section">
-      <div class="panel">
-        <div class="panel-head"><h2>收藏夹</h2></div>
-        <div class="panel-body"><div class="card-grid" id="favGrid"></div></div>
-      </div>
-
     <div class="panel" style="margin-bottom:18px;">
       <div class="panel-head"><h2>分类概览与学习进度</h2></div>
       <div class="panel-body" style="display:grid;grid-template-columns:1.3fr .9fr;gap:18px;">
@@ -181,9 +174,9 @@
           <div class="progress-wrap"><div class="progress-bar" id="masteryBar"></div></div>
           <div class="counts" style="margin-top:16px;">
             <div class="count-card"><div style="color:var(--muted)">待复习</div><div id="wrongCount" style="font-size:30px;font-weight:800;">0</div></div>
-            <div class="count-card"><div style="color:var(--muted)">收藏夹</div><div id="favCount" style="font-size:30px;font-weight:800;">0</div></div>
+            <div class="count-card"><div style="color:var(--muted)">已掌握</div><div id="masteredCount" style="font-size:30px;font-weight:800;">0</div></div>
           </div>
-          <div class="footer-tip">建议：每天复习错词本，再抽查 20 个高频工程词，记忆更牢。</div>
+          <div class="footer-tip">建议：先按分类学，再做整类抽查；错一次自动进入错词本，下次答对才会自动移出。</div>
         </div>
       </div>
     </div>
@@ -219,7 +212,6 @@ let state = {
   query: '',
   category: 'all',
   selected: flattenWords[0],
-  favorites: store.get('eng_favorites', []),
   wrongWords: store.get('eng_wrong_words', []),
   mastered: store.get('eng_mastered_words', []),
   practiceMode: 'en-to-cn',
@@ -242,7 +234,6 @@ function toggle(listName, item){
   renderAll();
 }
 function saveAll(){
-  store.set('eng_favorites', state.favorites);
   store.set('eng_wrong_words', state.wrongWords);
   store.set('eng_mastered_words', state.mastered);
 }
@@ -266,15 +257,15 @@ function renderCategories(){
 }
 function renderStats(){
   const total = flattenWords.length;
-  const fav = state.favorites.length;
+  const currentPool = filteredWords().length;
   const wrong = state.wrongWords.length;
   const mastered = state.mastered.length;
   const progress = Math.round((mastered / total) * 100);
   $('stats').innerHTML = [
-    ['总词数', total], ['收藏词', fav], ['错词本', wrong], ['已掌握', mastered]
+    ['总词数', total], ['当前分类/检索结果', currentPool], ['错词本', wrong], ['已掌握', mastered]
   ].map(([label, value]) => `<div class="stat"><div class="label">${label}</div><div class="value">${value}</div></div>`).join('');
   $('wrongCount').textContent = wrong;
-  $('favCount').textContent = fav;
+  $('masteredCount').textContent = mastered;
   $('progressText').textContent = progress + '%';
   $('masteryBar').style.width = progress + '%';
 }
@@ -289,7 +280,6 @@ function renderWordList(){
           <div class="word-sub">${item.chinese}</div>
         </div>
         <div>
-          ${hasIn(state.favorites, item) ? '<span class="pill fav">收藏</span>' : ''}
           ${hasIn(state.wrongWords, item) ? '<span class="pill wrong">错词</span>' : ''}
         </div>
       </div>
@@ -464,8 +454,6 @@ function renderDetail(){
       <div class="note"><div class="small" style="margin-top:0;">例句</div><div style="margin-top:8px;font-weight:600;line-height:1.8;">${exampleSentence(w)}</div><div class="small" style="margin-top:10px;">建议你先读英文例句，再尝试自己翻译成中文。</div></div>
     </div>
     <div class="actions">
-      <button class="btn" onclick="toggle('favorites', state.selected)">${hasIn(state.favorites,w) ? '取消收藏' : '加入收藏'}</button>
-      <button class="btn secondary" onclick="toggle('wrongWords', state.selected)">${hasIn(state.wrongWords,w) ? '移出错词本' : '加入错词本'}</button>
       <button class="btn ghost" onclick="toggle('mastered', state.selected)">${hasIn(state.mastered,w) ? '取消掌握' : '标记掌握'}</button>
     </div>
   `;
@@ -490,9 +478,14 @@ function renderSimpleGrid(targetId, items, emptyText, color=''){
     </div>`).join('') : `<div class="small">${emptyText}</div>`;
 }
 function buildReviewQueue(wrongFirst=false){
-  const source = wrongFirst && state.wrongWords.length ? [...state.wrongWords] : [...filteredWords()].slice(0,20);
-  state.reviewQueue = source.sort(() => Math.random() - 0.5);
-  state.selected = state.reviewQueue[0] || flattenWords[0];
+  const filtered = filteredWords();
+  let source = filtered;
+  if(wrongFirst){
+    const wrongInScope = filtered.filter(item => hasIn(state.wrongWords, item));
+    if(wrongInScope.length) source = wrongInScope;
+  }
+  state.reviewQueue = [...source].sort(() => Math.random() - 0.5);
+  state.selected = state.reviewQueue[0] || filtered[0] || flattenWords[0];
   $('practiceAnswer').value = '';
   $('practiceFeedback').innerHTML = '';
   renderPractice();
@@ -522,7 +515,13 @@ function checkAnswer(){
   renderSimpleGrid('wrongGrid', state.wrongWords, '还没有错词，继续保持。');
 }
 function nextQuestion(){
-  if(state.reviewQueue.length <= 1){ buildReviewQueue(false); return; }
+  if(state.reviewQueue.length <= 1){
+    state.reviewQueue = [];
+    $('practiceAnswer').value = '';
+    $('practiceFeedback').innerHTML = '<div class="feedback ok">本轮测试已完成。你可以重新开始当前分类的测试。</div>';
+    renderPractice();
+    return;
+  }
   state.reviewQueue.shift();
   $('practiceAnswer').value = '';
   $('practiceFeedback').innerHTML = '';
@@ -549,7 +548,6 @@ function renderAll(){
   renderWordList();
   renderDetail();
   renderSimpleGrid('wrongGrid', state.wrongWords, '还没有错词，继续保持。');
-  renderSimpleGrid('favGrid', state.favorites, '你还没有收藏单词。');
   renderPractice();
 }
 
@@ -560,8 +558,8 @@ window.goPrevWord = goPrevWord;
 window.goNextWord = goNextWord;
 
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
-$('searchInput').addEventListener('input', e => { state.query = e.target.value; renderWordList(); });
-$('categorySelect').addEventListener('change', e => { state.category = e.target.value; renderWordList(); });
+$('searchInput').addEventListener('input', e => { state.query = e.target.value; renderWordList(); renderStats(); });
+$('categorySelect').addEventListener('change', e => { state.category = e.target.value; renderWordList(); renderStats(); });
 $('reviewBtn').addEventListener('click', () => { switchTab('practice'); buildReviewQueue(false); });
 $('wrongFirstBtn').addEventListener('click', () => buildReviewQueue(true));
 $('modeEnCn').addEventListener('click', () => { state.practiceMode='en-to-cn'; $('modeEnCn').className='btn'; $('modeCnEn').className='btn secondary'; renderPractice(); });
