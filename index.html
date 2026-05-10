@@ -354,6 +354,60 @@ function showBook() {
   renderBook();
   showScreen("book");
 }
+
+function speakText(text, rate=0.86) {
+  if (!("speechSynthesis" in window)) {
+    alert("当前浏览器不支持语音朗读，请使用 Chrome、Edge 或 Safari。");
+    return;
+  }
+
+  // 先停止上一段朗读
+  window.speechSynthesis.cancel();
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "en-US";
+  utter.rate = rate;
+  utter.pitch = 1;
+  utter.volume = 1;
+
+  // 尽量选择英文语音
+  const voices = window.speechSynthesis.getVoices();
+  const enVoice =
+    voices.find(v => v.lang && v.lang.toLowerCase() === "en-us") ||
+    voices.find(v => v.lang && v.lang.toLowerCase().startsWith("en"));
+  if (enVoice) utter.voice = enVoice;
+
+  // iPhone Safari 有时第一次加载声音列表较慢，这里做一次延迟重试
+  if (!voices.length) {
+    setTimeout(() => {
+      const retryVoices = window.speechSynthesis.getVoices();
+      const retryVoice =
+        retryVoices.find(v => v.lang && v.lang.toLowerCase() === "en-us") ||
+        retryVoices.find(v => v.lang && v.lang.toLowerCase().startsWith("en"));
+      if (retryVoice) utter.voice = retryVoice;
+      window.speechSynthesis.speak(utter);
+    }, 120);
+    return;
+  }
+
+  window.speechSynthesis.speak(utter);
+}
+
+function speakSentence() {
+  if (!current) setPool();
+  speakText(current.sent, 0.82);
+}
+
+function speakWord() {
+  if (!current) setPool();
+  speakText(current.w, 0.78);
+}
+
+if ("speechSynthesis" in window) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+}
+
 init();
 </script>
 </body>
