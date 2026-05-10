@@ -141,6 +141,7 @@
         <div class="phonetic">工程现场高频词</div>
       </div>
       <div class="sentence" id="sentence"></div>
+      <button class="voice-btn" onclick="speakSentence()" style="margin-top:10px;">🔊 朗读句子</button>
       <p class="muted" id="sentenceZh" style="display:none;"></p>
     </div>
     <div class="options" id="options"></div>
@@ -164,6 +165,7 @@
     <div class="card spell-box">
       <div class="hero"><div class="emoji">✍️</div></div>
       <div class="spell-cn" id="spellCn">中文意思</div>
+      <button class="voice-btn" onclick="speakWord()" style="margin-bottom:10px;">🔊 朗读单词</button>
       <p class="muted">请拼写这个英文单词或短语</p>
       <input id="spellInput" class="spell-input" autocomplete="off" autocapitalize="off" />
       <div class="letters" id="letters"></div>
