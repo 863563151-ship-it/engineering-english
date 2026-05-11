@@ -141,7 +141,6 @@
         <div class="phonetic">工程现场高频词</div>
       </div>
       <div class="sentence" id="sentence"></div>
-      <button class="voice-btn" onclick="speakSentence()" style="margin-top:10px;">🔊 朗读句子</button>
       <p class="muted" id="sentenceZh" style="display:none;"></p>
     </div>
     <div class="options" id="options"></div>
@@ -165,7 +164,6 @@
     <div class="card spell-box">
       <div class="hero"><div class="emoji">✍️</div></div>
       <div class="spell-cn" id="spellCn">中文意思</div>
-      <button class="voice-btn" onclick="speakWord()" style="margin-bottom:10px;">🔊 朗读单词</button>
       <p class="muted">请拼写这个英文单词或短语</p>
       <input id="spellInput" class="spell-input" autocomplete="off" autocapitalize="off" />
       <div class="letters" id="letters"></div>
@@ -196,26 +194,60 @@
 </div>
 
 <script>
+
+// 一次性迁移旧版进度：把旧的 eng_index 复制为“全部”章节进度
+(function migrateOldProgress(){
+  const oldIndex = localStorage.getItem("eng_index");
+  const allIndex = localStorage.getItem("eng_index_全部");
+  if (oldIndex !== null && allIndex === null) {
+    localStorage.setItem("eng_index_全部", oldIndex);
+  }
+})();
+
 const WORDS = [{"w": "site", "cn": "现场", "cat": "进场与开工", "col": "construction site / on site", "sent": "The site is ready for handover this morning.", "zh": "现场今天上午可以移交。", "wrong": ["许可", "标高", "班组"], "id": 1, "options": ["标高", "现场", "许可", "班组"]}, {"w": "access road", "cn": "进场道路", "cat": "进场与开工", "col": "clear the access road", "sent": "Please keep the access road clear before the first delivery arrives.", "zh": "第一批材料到场前，请保持进场道路畅通。", "wrong": ["临时堆场", "放线", "图纸"], "id": 2, "options": ["图纸", "进场道路", "放线", "临时堆场"]}, {"w": "layout", "cn": "布置", "cat": "进场与开工", "col": "site layout", "sent": "The site layout must match the latest drawing.", "zh": "现场布置必须与最新版图纸一致。", "wrong": ["基础", "交货", "测量"], "id": 3, "options": ["基础", "交货", "测量", "布置"]}, {"w": "set out", "cn": "放线", "cat": "进场与开工", "col": "set out the axis and level", "sent": "Set out the axis and elevation according to the drawings.", "zh": "请按图纸放出轴线和标高。", "wrong": ["移交", "批准", "整改"], "id": 4, "options": ["整改", "放线", "批准", "移交"]}, {"w": "elevation", "cn": "标高", "cat": "进场与开工", "col": "design elevation", "sent": "Please check the elevation before the rebar work starts.", "zh": "钢筋施工开始前，请检查标高。", "wrong": ["班前会", "通道", "分包商"], "id": 5, "options": ["通道", "标高", "分包商", "班前会"]}, {"w": "foundation", "cn": "基础", "cat": "进场与开工", "col": "foundation work", "sent": "Check whether the foundation workface is ready for inspection.", "zh": "确认基础工作面是否具备验收条件。", "wrong": ["进场道路", "送货单", "会议纪要"], "id": 6, "options": ["基础", "进场道路", "会议纪要", "送货单"]}, {"w": "drawing", "cn": "图纸", "cat": "进场与开工", "col": "according to the drawings", "sent": "The layout must match the latest revision of the drawing.", "zh": "现场布置必须与最新版图纸一致。", "wrong": ["库存", "安全帽", "责任人"], "id": 7, "options": ["责任人", "安全帽", "库存", "图纸"]}, {"w": "permit", "cn": "许可", "cat": "进场与开工", "col": "work permit", "sent": "The subcontractor can start after the work permit is approved.", "zh": "作业许可批准后，分包商可以进场。", "wrong": ["缺陷", "样品", "时差"], "id": 8, "options": ["时差", "缺陷", "许可", "样品"]}, {"w": "delivery", "cn": "交货 / 到货", "cat": "进场与开工", "col": "material delivery", "sent": "Confirm the delivery sequence and unloading location.", "zh": "请确认到货顺序和卸货位置。", "wrong": ["线形", "脚手架", "停工"], "id": 9, "options": ["交货 / 到货", "脚手架", "停工", "线形"]}, {"w": "subcontractor", "cn": "分包商", "cat": "进场与开工", "col": "local subcontractor", "sent": "Tell the subcontractor where to unload the materials.", "zh": "通知分包商按指定位置卸料。", "wrong": ["监理", "业主代表", "测量员"], "id": 10, "options": ["分包商", "监理", "业主代表", "测量员"]}, {"w": "crew", "cn": "班组 / 施工队", "cat": "进场与开工", "col": "construction crew", "sent": "Please brief the crew before starting work.", "zh": "开工前请先给班组做交底。", "wrong": ["试件", "泵车", "变更"], "id": 11, "options": ["变更", "泵车", "试件", "班组 / 施工队"]}, {"w": "commence", "cn": "开始 / 开工", "cat": "进场与开工", "col": "commence the work", "sent": "We are ready to commence the work after site handover.", "zh": "现场移交后，我们就可以准备开工。", "wrong": ["修理", "归档", "见证"], "id": 12, "options": ["开始 / 开工", "修理", "归档", "见证"]}, {"w": "handover", "cn": "移交", "cat": "进场与开工", "col": "site handover", "sent": "We can start after the handover record is signed.", "zh": "移交记录签完后，我们可以开始。", "wrong": ["整改", "垂直度", "燃料"], "id": 13, "options": ["移交", "垂直度", "整改", "燃料"]}, {"w": "survey", "cn": "测量", "cat": "进场与开工", "col": "site survey", "sent": "We need one more survey before the rebar work starts.", "zh": "钢筋施工开始前还需要再做一次测量。", "wrong": ["审批", "文明施工", "样品"], "id": 14, "options": ["样品", "测量", "审批", "文明施工"]}, {"w": "temporary works", "cn": "临时工程", "cat": "进场与开工", "col": "temporary works arrangement", "sent": "Please confirm the temporary works arrangement today.", "zh": "请今天确认临时工程安排。", "wrong": ["永久措施", "钢筋", "灭火器"], "id": 15, "options": ["永久措施", "灭火器", "钢筋", "临时工程"]}, {"w": "storage area", "cn": "堆场 / 材料堆放区", "cat": "进场与开工", "col": "material storage area", "sent": "This area will be used as the temporary storage area.", "zh": "这个区域将作为临时堆场。", "wrong": ["作业许可", "关键线路", "检测结果"], "id": 16, "options": ["检测结果", "关键线路", "堆场 / 材料堆放区", "作业许可"]}, {"w": "tool box meeting", "cn": "班前会", "cat": "进场与开工", "col": "daily tool box meeting", "sent": "Please hold a tool box meeting before work starts.", "zh": "开工前请召开班前会。", "wrong": ["终验", "返工", "备件"], "id": 17, "options": ["班前会", "备件", "终验", "返工"]}, {"w": "workface", "cn": "工作面", "cat": "进场与开工", "col": "open a new workface", "sent": "Please release the workface to the next trade by tomorrow.", "zh": "请在明天前把工作面移交给下道工序。", "wrong": ["图纸澄清", "安全带", "发电机"], "id": 18, "options": ["工作面", "安全带", "图纸澄清", "发电机"]}, {"w": "inspection", "cn": "检查 / 验收", "cat": "现场检查与质量", "col": "site inspection", "sent": "Please prepare the checklist before the inspection.", "zh": "检查前请准备好检查表。", "wrong": ["加班", "材料短缺", "吊装区"], "id": 19, "options": ["材料短缺", "吊装区", "检查 / 验收", "加班"]}, {"w": "approval", "cn": "批准 / 报审", "cat": "现场检查与质量", "col": "request for approval", "sent": "No further work is allowed before approval.", "zh": "未获批准前不得进行下一道工序。", "wrong": ["旋风", "堆场", "燃料"], "id": 20, "options": ["旋风", "燃料", "堆场", "批准 / 报审"]}, {"w": "checklist", "cn": "检查表", "cat": "现场检查与质量", "col": "inspection checklist", "sent": "The checklist must be signed and filed.", "zh": "检查表必须签字归档。", "wrong": ["吊车", "责任人", "变更"], "id": 21, "options": ["责任人", "检查表", "变更", "吊车"]}, {"w": "specification", "cn": "技术规范", "cat": "现场检查与质量", "col": "meet the specification", "sent": "The workmanship must meet the specification.", "zh": "施工质量必须符合技术规范。", "wrong": ["临边防护", "短期计划", "发电机"], "id": 22, "options": ["技术规范", "短期计划", "发电机", "临边防护"]}, {"w": "standard", "cn": "标准", "cat": "现场检查与质量", "col": "quality standard", "sent": "The work must meet the approved quality standard.", "zh": "施工必须符合已批准的质量标准。", "wrong": ["班组", "备件", "书面回复"], "id": 23, "options": ["书面回复", "备件", "标准", "班组"]}, {"w": "defect", "cn": "缺陷", "cat": "现场检查与质量", "col": "surface defect", "sent": "There is a surface defect in this area.", "zh": "这个区域有表面缺陷。", "wrong": ["标高", "吊装", "库存"], "id": 24, "options": ["标高", "库存", "缺陷", "吊装"]}, {"w": "alignment", "cn": "线形 / 对齐", "cat": "现场检查与质量", "col": "check the alignment", "sent": "Check the alignment carefully before acceptance.", "zh": "验收前认真检查线形。", "wrong": ["灭火器", "分包商", "油量"], "id": 25, "options": ["灭火器", "线形 / 对齐", "分包商", "油量"]}, {"w": "plumbness", "cn": "垂直度", "cat": "现场检查与质量", "col": "keep the wall plumb", "sent": "Please check the plumbness of the wall.", "zh": "请检查墙体垂直度。", "wrong": ["道路", "许可", "班前会"], "id": 26, "options": ["道路", "许可", "垂直度", "班前会"]}, {"w": "dimension", "cn": "尺寸", "cat": "现场检查与质量", "col": "check the dimension", "sent": "I still need to check two dimensions.", "zh": "我还要再检查两个尺寸。", "wrong": ["燃料", "会议纪要", "吊车"], "id": 27, "options": ["吊车", "尺寸", "会议纪要", "燃料"]}, {"w": "tolerance", "cn": "允许偏差", "cat": "现场检查与质量", "col": "within tolerance", "sent": "This item is outside the tolerance and needs rework.", "zh": "这一项超出允许偏差，需要返工。", "wrong": ["交底", "堆场", "沟通"], "id": 28, "options": ["允许偏差", "交底", "堆场", "沟通"]}, {"w": "sample", "cn": "样品 / 试件", "cat": "现场检查与质量", "col": "take a sample", "sent": "Take concrete samples and send them to the lab today.", "zh": "今天把混凝土试件取好并送检。", "wrong": ["脚手架", "发电机", "指令"], "id": 29, "options": ["脚手架", "指令", "发电机", "样品 / 试件"]}, {"w": "test result", "cn": "检测结果", "cat": "现场检查与质量", "col": "lab test result", "sent": "Please attach the test results when available.", "zh": "检测结果出来后请一并附上。", "wrong": ["油量", "进场道路", "反光背心"], "id": 30, "options": ["反光背心", "进场道路", "油量", "检测结果"]}, {"w": "NCR", "cn": "不符合项报告", "cat": "现场检查与质量", "col": "issue an NCR", "sent": "Please raise an NCR and close it after rectification.", "zh": "请开具不符合项报告，整改后再关闭。", "wrong": ["班组", "堆场", "吊车"], "id": 31, "options": ["班组", "不符合项报告", "吊车", "堆场"]}, {"w": "rework", "cn": "返工", "cat": "现场检查与质量", "col": "carry out rework", "sent": "This area needs rework before re-inspection.", "zh": "这个区域复验前需要返工。", "wrong": ["交货", "澄清", "库存"], "id": 32, "options": ["澄清", "库存", "交货", "返工"]}, {"w": "surface finish", "cn": "成型观感 / 表面效果", "cat": "现场检查与质量", "col": "concrete surface finish", "sent": "The surface finish is not acceptable in this area.", "zh": "这个区域的成型观感不合格。", "wrong": ["进度", "作业许可", "燃料"], "id": 33, "options": ["进度", "作业许可", "燃料", "成型观感 / 表面效果"]}, {"w": "record", "cn": "记录", "cat": "现场检查与质量", "col": "keep the inspection record", "sent": "Keep all the records signed and filed.", "zh": "所有记录都要签字归档。", "wrong": ["班组", "吊装区", "通道"], "id": 34, "options": ["通道", "记录", "吊装区", "班组"]}, {"w": "witness", "cn": "见证", "cat": "现场检查与质量", "col": "witness inspection", "sent": "We need the consultant to witness this inspection.", "zh": "这次检查需要监理见证。", "wrong": ["加班", "卸货", "安全带"], "id": 35, "options": ["加班", "见证", "安全带", "卸货"]}, {"w": "acceptance", "cn": "验收", "cat": "现场检查与质量", "col": "final acceptance", "sent": "This area is ready for acceptance now.", "zh": "这个区域现在具备验收条件。", "wrong": ["发电机", "临时措施", "工序"], "id": 36, "options": ["工序", "发电机", "验收", "临时措施"]}, {"w": "progress", "cn": "进度", "cat": "进度与工序衔接", "col": "construction progress", "sent": "Where are we against the weekly progress target?", "zh": "本周进度目标完成得怎么样？", "wrong": ["质量标准", "安全隐患", "送货单"], "id": 37, "options": ["质量标准", "送货单", "进度", "安全隐患"]}, {"w": "schedule", "cn": "计划", "cat": "进度与工序衔接", "col": "master schedule", "sent": "Update the schedule and share it with all parties.", "zh": "请更新计划并发给各方。", "wrong": ["样品", "图纸", "发电机"], "id": 38, "options": ["样品", "发电机", "图纸", "计划"]}, {"w": "milestone", "cn": "里程碑", "cat": "进度与工序衔接", "col": "key milestone", "sent": "This activity is linked to a key milestone.", "zh": "这项作业与关键里程碑有关。", "wrong": ["临边防护", "标高", "缺陷"], "id": 39, "options": ["标高", "里程碑", "临边防护", "缺陷"]}, {"w": "delay", "cn": "延误", "cat": "进度与工序衔接", "col": "behind schedule", "sent": "We need more workers to catch up the delay.", "zh": "我们需要增加工人赶回延误。", "wrong": ["许可", "泵车", "记录"], "id": 40, "options": ["延误", "泵车", "记录", "许可"]}, {"w": "float", "cn": "时差 / 余量", "cat": "进度与工序衔接", "col": "schedule float", "sent": "There is very little float on this activity.", "zh": "这项作业的时差很少。", "wrong": ["整改", "堆场", "手套"], "id": 41, "options": ["整改", "时差 / 余量", "堆场", "手套"]}, {"w": "sequence", "cn": "顺序 / 工序顺序", "cat": "进度与工序衔接", "col": "construction sequence", "sent": "Adjust the sequence to avoid further delay.", "zh": "调整工序顺序，避免进一步延误。", "wrong": ["灭火器", "许可", "检测结果"], "id": 42, "options": ["许可", "顺序 / 工序顺序", "灭火器", "检测结果"]}, {"w": "activity", "cn": "作业 / 活动", "cat": "进度与工序衔接", "col": "critical activity", "sent": "This activity is on the critical path and cannot be delayed.", "zh": "这项作业在关键线路上，不能延误。", "wrong": ["库存", "安全帽", "样品"], "id": 43, "options": ["安全帽", "库存", "样品", "作业 / 活动"]}, {"w": "resource", "cn": "资源", "cat": "进度与工序衔接", "col": "labor and equipment resources", "sent": "We need more labor and equipment resources this week.", "zh": "本周我们需要更多人工和设备资源。", "wrong": ["会议纪要", "图纸", "临时堆场"], "id": 44, "options": ["图纸", "临时堆场", "会议纪要", "资源"]}, {"w": "overtime", "cn": "加班", "cat": "进度与工序衔接", "col": "work overtime", "sent": "We may need overtime work on Saturday.", "zh": "周六我们可能需要加班。", "wrong": ["试件", "澄清", "进场道路"], "id": 45, "options": ["试件", "加班", "澄清", "进场道路"]}, {"w": "catch up", "cn": "赶工 / 追回", "cat": "进度与工序衔接", "col": "catch up the delay", "sent": "If we add one more crew, we can catch up by Friday.", "zh": "如果再增加一个班组，周五前可以赶上。", "wrong": ["停工", "见证", "送检"], "id": 46, "options": ["赶工 / 追回", "送检", "停工", "见证"]}, {"w": "bottleneck", "cn": "瓶颈", "cat": "进度与工序衔接", "col": "main bottleneck", "sent": "The main bottleneck is material delivery, not labor.", "zh": "主要瓶颈是材料到货，不是人工。", "wrong": ["验收", "手套", "图纸"], "id": 47, "options": ["手套", "图纸", "验收", "瓶颈"]}, {"w": "interface", "cn": "界面 / 接口", "cat": "进度与工序衔接", "col": "trade interface", "sent": "Please check the interface between civil and MEP work.", "zh": "请检查土建和机电之间的界面。", "wrong": ["样品", "安全帽", "库存"], "id": 48, "options": ["库存", "样品", "界面 / 接口", "安全帽"]}, {"w": "priority", "cn": "优先级", "cat": "进度与工序衔接", "col": "top priority", "sent": "This area will be our top priority this week.", "zh": "本周这个区域是我们的最高优先级。", "wrong": ["尺寸", "发电机", "移交"], "id": 49, "options": ["移交", "尺寸", "优先级", "发电机"]}, {"w": "productivity", "cn": "效率", "cat": "进度与工序衔接", "col": "improve productivity", "sent": "We need to improve productivity in this zone.", "zh": "我们需要提高这个区域的效率。", "wrong": ["灭火器", "样品", "标高"], "id": 50, "options": ["标高", "样品", "灭火器", "效率"]}, {"w": "daily target", "cn": "日目标", "cat": "进度与工序衔接", "col": "meet the daily target", "sent": "Each crew must meet the daily target.", "zh": "每个班组都必须完成日目标。", "wrong": ["送货单", "验收", "设备故障"], "id": 51, "options": ["日目标", "验收", "送货单", "设备故障"]}, {"w": "look-ahead plan", "cn": "短期计划", "cat": "进度与工序衔接", "col": "two-week look-ahead", "sent": "Update the look-ahead plan and inform all parties.", "zh": "更新短期计划并通知各方。", "wrong": ["永久措施", "临边防护", "油量"], "id": 52, "options": ["油量", "短期计划", "临边防护", "永久措施"]}, {"w": "hazard", "cn": "隐患", "cat": "安全与文明施工", "col": "safety hazard", "sent": "Report any safety hazard immediately.", "zh": "任何安全隐患都要立即报告。", "wrong": ["尺寸", "进度", "交货"], "id": 53, "options": ["交货", "尺寸", "隐患", "进度"]}, {"w": "PPE", "cn": "个体防护装备", "cat": "安全与文明施工", "col": "wear proper PPE", "sent": "No work starts without proper PPE.", "zh": "未正确佩戴劳保用品不得开工。", "wrong": ["检测结果", "移交", "进场道路"], "id": 54, "options": ["个体防护装备", "移交", "进场道路", "检测结果"]}, {"w": "helmet", "cn": "安全帽", "cat": "安全与文明施工", "col": "safety helmet", "sent": "No one may enter this area without a helmet.", "zh": "没有安全帽，任何人不得进入该区域。", "wrong": ["样品", "发电机", "整改"], "id": 55, "options": ["安全帽", "发电机", "整改", "样品"]}, {"w": "reflective vest", "cn": "反光背心", "cat": "安全与文明施工", "col": "wear a reflective vest", "sent": "Workers must wear a reflective vest on site.", "zh": "工人在现场必须穿反光背心。", "wrong": ["技术规范", "堆场", "班前会"], "id": 56, "options": ["技术规范", "堆场", "班前会", "反光背心"]}, {"w": "gloves", "cn": "手套", "cat": "安全与文明施工", "col": "protective gloves", "sent": "Please wear gloves before handling the material.", "zh": "搬运材料前请戴手套。", "wrong": ["会议纪要", "时差", "泵车"], "id": 57, "options": ["泵车", "时差", "会议纪要", "手套"]}, {"w": "harness", "cn": "安全带", "cat": "安全与文明施工", "col": "full body harness", "sent": "Use a full body harness when working at height.", "zh": "高处作业时使用全身式安全带。", "wrong": ["许可", "图纸", "检测结果"], "id": 58, "options": ["图纸", "检测结果", "许可", "安全带"]}, {"w": "scaffold", "cn": "脚手架", "cat": "安全与文明施工", "col": "scaffold inspection", "sent": "The scaffold must be inspected before use.", "zh": "脚手架使用前必须检查。", "wrong": ["钢筋", "计划", "变更"], "id": 59, "options": ["变更", "计划", "脚手架", "钢筋"]}, {"w": "edge protection", "cn": "临边防护", "cat": "安全与文明施工", "col": "install edge protection", "sent": "Install edge protection before opening this area.", "zh": "该区域打开前先做好临边防护。", "wrong": ["标高", "交底", "库存"], "id": 60, "options": ["交底", "库存", "临边防护", "标高"]}, {"w": "warning tape", "cn": "警戒带", "cat": "安全与文明施工", "col": "put up warning tape", "sent": "Put up warning tape around the lifting zone.", "zh": "在吊装区域周围设置警戒带。", "wrong": ["样品", "进度", "送货单"], "id": 61, "options": ["送货单", "警戒带", "样品", "进度"]}, {"w": "restricted area", "cn": "限制区域", "cat": "安全与文明施工", "col": "restricted area", "sent": "This is a restricted area. Unauthorized entry is not allowed.", "zh": "这是限制区域，未经许可不得进入。", "wrong": ["堆场", "尺寸", "图纸"], "id": 62, "options": ["堆场", "尺寸", "限制区域", "图纸"]}, {"w": "lifting zone", "cn": "吊装区域", "cat": "安全与文明施工", "col": "keep out of lifting zone", "sent": "Please stop work immediately in this lifting zone.", "zh": "该吊装区域请立即停工。", "wrong": ["检测结果", "进场道路", "会议纪要"], "id": 63, "options": ["会议纪要", "进场道路", "吊装区域", "检测结果"]}, {"w": "housekeeping", "cn": "文明施工 / 清理", "cat": "安全与文明施工", "col": "good housekeeping", "sent": "Good housekeeping keeps the walkway clear and clean.", "zh": "良好的文明施工能保持通道畅通整洁。", "wrong": ["整改", "发电机", "工序"], "id": 64, "options": ["文明施工 / 清理", "发电机", "整改", "工序"]}, {"w": "fire extinguisher", "cn": "灭火器", "cat": "安全与文明施工", "col": "fire extinguisher location", "sent": "Where is the nearest fire extinguisher?", "zh": "最近的灭火器在哪里？", "wrong": ["钢筋", "时差", "样品"], "id": 65, "options": ["时差", "钢筋", "灭火器", "样品"]}, {"w": "tool box talk", "cn": "安全交底", "cat": "安全与文明施工", "col": "morning tool box talk", "sent": "Please conduct the morning tool box talk with the crew.", "zh": "请给班组做班前安全交底。", "wrong": ["图纸", "吊车", "进度"], "id": 66, "options": ["安全交底", "吊车", "图纸", "进度"]}, {"w": "incident", "cn": "事件 / 事故", "cat": "安全与文明施工", "col": "report the incident", "sent": "Report the incident to the safety officer immediately.", "zh": "立即向安全员报告该事件。", "wrong": ["检查表", "堆场", "许可"], "id": 67, "options": ["许可", "堆场", "检查表", "事件 / 事故"]}, {"w": "near miss", "cn": "未遂事件", "cat": "安全与文明施工", "col": "record the near miss", "sent": "Report any near miss or unsafe act immediately.", "zh": "任何未遂事件或不安全行为都要立即报告。", "wrong": ["验收", "发电机", "尺寸"], "id": 68, "options": ["发电机", "验收", "尺寸", "未遂事件"]}, {"w": "permit to work", "cn": "作业许可", "cat": "安全与文明施工", "col": "hot work permit", "sent": "We need a permit to work before hot works begin.", "zh": "动火作业开始前必须办理作业许可。", "wrong": ["效率", "标高", "检测结果"], "id": 69, "options": ["效率", "作业许可", "标高", "检测结果"]}, {"w": "stop work", "cn": "停工", "cat": "安全与文明施工", "col": "stop work immediately", "sent": "Stop work. This lifting zone is not isolated.", "zh": "停工，这个吊装区域没有做好隔离。", "wrong": ["开始", "送检", "归档"], "id": 70, "options": ["开始", "送检", "归档", "停工"]}, {"w": "material", "cn": "材料", "cat": "材料设备与故障", "col": "construction material", "sent": "Please check the material before unloading.", "zh": "卸货前请检查材料。", "wrong": ["验收", "安全带", "短期计划"], "id": 71, "options": ["短期计划", "安全带", "验收", "材料"]}, {"w": "rebar", "cn": "钢筋", "cat": "材料设备与故障", "col": "rebar delivery", "sent": "We are short of rebar in this area.", "zh": "这个区域钢筋短缺。", "wrong": ["图纸", "手套", "会议纪要"], "id": 72, "options": ["图纸", "钢筋", "会议纪要", "手套"]}, {"w": "cement", "cn": "水泥", "cat": "材料设备与故障", "col": "cement stock", "sent": "Please keep a minimum stock of cement on site.", "zh": "现场请保持最低水泥库存。", "wrong": ["发电机", "隐患", "变更"], "id": 73, "options": ["发电机", "变更", "隐患", "水泥"]}, {"w": "concrete", "cn": "混凝土", "cat": "材料设备与故障", "col": "ready-mix concrete", "sent": "The concrete pump broke down during casting.", "zh": "浇筑过程中混凝土泵车发生故障。", "wrong": ["模板", "许可", "验收"], "id": 74, "options": ["验收", "模板", "混凝土", "许可"]}, {"w": "formwork", "cn": "模板", "cat": "材料设备与故障", "col": "formwork panel", "sent": "Replace the damaged formwork panel before the next pour.", "zh": "下次浇筑前更换损坏的模板。", "wrong": ["标高", "反光背心", "澄清"], "id": 75, "options": ["反光背心", "澄清", "标高", "模板"]}, {"w": "pump", "cn": "泵 / 泵车", "cat": "材料设备与故障", "col": "concrete pump", "sent": "The pump stopped during casting.", "zh": "泵车在浇筑中停了。", "wrong": ["尺寸", "安全帽", "会议纪要"], "id": 76, "options": ["泵 / 泵车", "尺寸", "安全帽", "会议纪要"]}, {"w": "generator", "cn": "发电机", "cat": "材料设备与故障", "col": "backup generator", "sent": "Please check the fuel level of the generator.", "zh": "请检查发电机油量。", "wrong": ["检查表", "堆场", "业主"], "id": 77, "options": ["发电机", "业主", "检查表", "堆场"]}, {"w": "forklift", "cn": "叉车", "cat": "材料设备与故障", "col": "forklift operator", "sent": "The forklift is needed for unloading this truck.", "zh": "这辆车需要叉车卸货。", "wrong": ["钢筋", "样品", "工作面"], "id": 78, "options": ["工作面", "叉车", "钢筋", "样品"]}, {"w": "crane", "cn": "吊车", "cat": "材料设备与故障", "col": "mobile crane", "sent": "The mobile crane will arrive this afternoon.", "zh": "移动吊车今天下午到。", "wrong": ["标高", "记录", "班组"], "id": 79, "options": ["记录", "班组", "吊车", "标高"]}, {"w": "breakdown", "cn": "故障", "cat": "材料设备与故障", "col": "equipment breakdown", "sent": "The equipment breakdown affected the concrete pour.", "zh": "设备故障影响了混凝土浇筑。", "wrong": ["验收", "进场道路", "临边防护"], "id": 80, "options": ["故障", "进场道路", "临边防护", "验收"]}, {"w": "maintenance", "cn": "保养", "cat": "材料设备与故障", "col": "routine maintenance", "sent": "Routine maintenance must be done every week.", "zh": "例行保养必须每周进行。", "wrong": ["停工", "图纸", "见证"], "id": 81, "options": ["保养", "见证", "停工", "图纸"]}, {"w": "spare part", "cn": "备件", "cat": "材料设备与故障", "col": "replace a spare part", "sent": "The spare part will arrive this afternoon.", "zh": "备件今天下午到。", "wrong": ["短期计划", "样品", "安全带"], "id": 82, "options": ["备件", "样品", "短期计划", "安全带"]}, {"w": "fuel", "cn": "燃料 / 油量", "cat": "材料设备与故障", "col": "fuel consumption", "sent": "Check the fuel level before starting the generator.", "zh": "启动发电机前检查油量。", "wrong": ["审批", "垂直度", "会议纪要"], "id": 83, "options": ["燃料 / 油量", "垂直度", "会议纪要", "审批"]}, {"w": "stock", "cn": "库存", "cat": "材料设备与故障", "col": "minimum stock", "sent": "Keep a minimum stock of cement and ties on site.", "zh": "现场请保持最低水泥和拉杆库存。", "wrong": ["临边防护", "工序", "澄清"], "id": 84, "options": ["工序", "库存", "临边防护", "澄清"]}, {"w": "shortage", "cn": "短缺", "cat": "材料设备与故障", "col": "material shortage", "sent": "The material shortage may delay the work.", "zh": "材料短缺可能会延误施工。", "wrong": ["安全帽", "检测结果", "班前会"], "id": 85, "options": ["班前会", "安全帽", "短缺", "检测结果"]}, {"w": "delivery note", "cn": "送货单", "cat": "材料设备与故障", "col": "sign the delivery note", "sent": "Sign the delivery note after checking the quantity.", "zh": "核对数量后再签收送货单。", "wrong": ["缺陷", "许可", "灭火器"], "id": 86, "options": ["灭火器", "送货单", "许可", "缺陷"]}, {"w": "unload", "cn": "卸货", "cat": "材料设备与故障", "col": "unload the material", "sent": "Tell the subcontractor where to unload the materials.", "zh": "通知分包商按指定位置卸料。", "wrong": ["返工", "交底", "时差"], "id": 87, "options": ["时差", "返工", "交底", "卸货"]}, {"w": "repair", "cn": "维修", "cat": "材料设备与故障", "col": "urgent repair", "sent": "How long will the repair take?", "zh": "维修还需要多久？", "wrong": ["检查", "计划", "堆场"], "id": 88, "options": ["堆场", "维修", "计划", "检查"]}, {"w": "issue", "cn": "问题", "cat": "问题处理与协调", "col": "key issue", "sent": "This is an urgent issue and must be closed today.", "zh": "这是紧急问题，今天必须关闭。", "wrong": ["钢筋", "安全帽", "检测结果"], "id": 89, "options": ["安全帽", "钢筋", "问题", "检测结果"]}, {"w": "clarification", "cn": "澄清", "cat": "问题处理与协调", "col": "drawing clarification", "sent": "We need written clarification before we proceed.", "zh": "继续施工前我们需要书面澄清。", "wrong": ["验收", "叉车", "手套"], "id": 90, "options": ["手套", "验收", "叉车", "澄清"]}, {"w": "instruction", "cn": "指令", "cat": "问题处理与协调", "col": "site instruction", "sent": "The consultant’s instruction is clear.", "zh": "监理指令已经明确。", "wrong": ["图纸", "堆场", "钢筋"], "id": 91, "options": ["钢筋", "指令", "堆场", "图纸"]}, {"w": "rectification", "cn": "整改", "cat": "问题处理与协调", "col": "rectification work", "sent": "Please repair it and submit the rectification record.", "zh": "请整改并提交整改记录。", "wrong": ["时差", "油量", "进场道路"], "id": 92, "options": ["时差", "进场道路", "油量", "整改"]}, {"w": "variation", "cn": "变更", "cat": "问题处理与协调", "col": "design variation", "sent": "This variation will affect both cost and time.", "zh": "这个变更会同时影响成本和工期。", "wrong": ["安全帽", "样品", "班组"], "id": 93, "options": ["变更", "安全帽", "样品", "班组"]}, {"w": "reply", "cn": "回复", "cat": "问题处理与协调", "col": "written reply", "sent": "Please give us a written reply by 4 p.m.", "zh": "请在下午四点前给我们书面回复。", "wrong": ["脚手架", "混凝土", "验收"], "id": 94, "options": ["回复", "脚手架", "混凝土", "验收"]}, {"w": "deadline", "cn": "期限", "cat": "问题处理与协调", "col": "reply deadline", "sent": "Put the name and deadline in the minutes.", "zh": "把责任人和期限写进纪要。", "wrong": ["钢筋", "标高", "手套"], "id": 95, "options": ["标高", "手套", "期限", "钢筋"]}, {"w": "responsible person", "cn": "责任人", "cat": "问题处理与协调", "col": "assign a responsible person", "sent": "Please confirm who is responsible for this action item.", "zh": "请确认这项行动项由谁负责。", "wrong": ["样品", "发电机", "缺陷"], "id": 96, "options": ["发电机", "责任人", "缺陷", "样品"]}, {"w": "follow up", "cn": "跟进", "cat": "问题处理与协调", "col": "follow up the action", "sent": "Follow up this item and update me by 4 p.m.", "zh": "请跟进这项内容，并在下午四点前回复我。", "wrong": ["返工", "吊车", "班前会"], "id": 97, "options": ["跟进", "班前会", "返工", "吊车"]}, {"w": "urgent", "cn": "紧急", "cat": "问题处理与协调", "col": "urgent issue", "sent": "This is an urgent issue and must be closed today.", "zh": "这是紧急问题，今天必须关闭。", "wrong": ["尺寸", "交货", "库存"], "id": 98, "options": ["紧急", "交货", "库存", "尺寸"]}, {"w": "temporary solution", "cn": "临时措施", "cat": "问题处理与协调", "col": "temporary solution", "sent": "We can apply a temporary solution first.", "zh": "我们可以先采取临时措施。", "wrong": ["永久工程", "反光背心", "检测结果"], "id": 99, "options": ["永久工程", "临时措施", "检测结果", "反光背心"]}, {"w": "permanent solution", "cn": "永久措施", "cat": "问题处理与协调", "col": "permanent solution", "sent": "We need a permanent solution after the temporary fix.", "zh": "临时处理后，我们需要永久措施。", "wrong": ["班组", "灭火器", "进场道路"], "id": 100, "options": ["灭火器", "永久措施", "班组", "进场道路"]}, {"w": "interface issue", "cn": "界面问题", "cat": "问题处理与协调", "col": "trade interface issue", "sent": "The interface issue between civil and MEP is still open.", "zh": "土建和机电之间的界面问题仍未关闭。", "wrong": ["送货单", "安全帽", "试件"], "id": 101, "options": ["界面问题", "安全帽", "试件", "送货单"]}, {"w": "meeting minute", "cn": "会议纪要", "cat": "问题处理与协调", "col": "issue the meeting minute", "sent": "Please issue the meeting minute with deadlines and names.", "zh": "请把责任人和期限写进会议纪要。", "wrong": ["油量", "标高", "图纸"], "id": 102, "options": ["会议纪要", "图纸", "标高", "油量"]}, {"w": "action item", "cn": "行动项", "cat": "问题处理与协调", "col": "close the action item", "sent": "Please confirm who is responsible for this action item.", "zh": "请确认这项行动项由谁负责。", "wrong": ["发电机", "吊装区", "混凝土"], "id": 103, "options": ["行动项", "混凝土", "吊装区", "发电机"]}, {"w": "consultant", "cn": "监理 / 顾问", "cat": "问题处理与协调", "col": "consultant instruction", "sent": "The consultant will witness this inspection.", "zh": "监理将见证这次检查。", "wrong": ["分包商", "班组", "修理工"], "id": 104, "options": ["分包商", "监理 / 顾问", "班组", "修理工"]}, {"w": "owner", "cn": "业主", "cat": "问题处理与协调", "col": "owner's representative", "sent": "We still need official approval from the owner.", "zh": "我们仍需业主正式批准。", "wrong": ["测量员", "叉车司机", "工人"], "id": 105, "options": ["测量员", "叉车司机", "工人", "业主"]}];
 let category = localStorage.getItem("eng_category") || "全部";
 let pool = [];
-let currentIndex = Number(localStorage.getItem("eng_index") || 0);
+let currentIndex = Number(
+  localStorage.getItem("eng_index_" + category) ??
+  localStorage.getItem("eng_index") ??
+  0
+);
 let current = null;
 let stats = JSON.parse(localStorage.getItem("eng_stats") || '{"done":0,"right":0,"choice":0,"spellRight":0}');
 
 const emojis = ["🏗️","🦺","📐","🚧","🏢","🔧","📝","🚚","⚠️","✅"];
 
 function save() {
+  // 兼容旧版记录：eng_index 仍然保存当前进度
   localStorage.setItem("eng_index", currentIndex);
+
+  // 新版记录：每个章节单独保存进度，避免切换章节后从头开始
+  const catKey = category || "全部";
+  localStorage.setItem("eng_index_" + catKey, currentIndex);
+
   localStorage.setItem("eng_stats", JSON.stringify(stats));
   localStorage.setItem("eng_category", category);
 }
+
+// 自动修复：如果切换章节导致“全部”回到 1/105，但已学习数量还在，则用已学习数恢复位置
+function recoverIndexFromDone() {
+  if ((category || "全部") === "全部" && currentIndex === 0 && stats && Number(stats.done) > 0) {
+    const done = Number(stats.done);
+    if (done > 0 && done < WORDS.length) {
+      currentIndex = done;
+      localStorage.setItem("eng_index", currentIndex);
+      localStorage.setItem("eng_index_全部", currentIndex);
+    }
+  }
+}
+
 function setPool() {
   pool = category === "全部" ? WORDS : WORDS.filter(x => x.cat === category);
   if (currentIndex >= pool.length) currentIndex = 0;
   current = pool[currentIndex] || WORDS[0];
 }
 function init() {
+  recoverIndexFromDone();
   const cats = ["全部", ...new Set(WORDS.map(x=>x.cat))];
   const sel = document.getElementById("catSelect");
   sel.innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join("");
@@ -247,8 +279,20 @@ function updateHome() {
   document.getElementById("homeProgress").style.width = p + "%";
 }
 function changeCategory() {
+  // 保存当前章节进度，再切换章节
+  const oldCategory = category || "全部";
+  localStorage.setItem("eng_index_" + oldCategory, currentIndex);
+
   category = document.getElementById("catSelect").value;
-  currentIndex = 0;
+
+  // 每个章节使用自己的学习位置；不会再把“全部”的进度重置为 0
+  const savedIndex = localStorage.getItem("eng_index_" + category);
+  if (savedIndex !== null) {
+    currentIndex = Number(savedIndex);
+  } else {
+    currentIndex = 0;
+  }
+
   setPool();
   save();
   updateHome();
@@ -342,6 +386,14 @@ function resetProgress() {
   if(!confirm("确定重置学习进度吗？")) return;
   stats = {"done":0,"right":0,"choice":0,"spellRight":0};
   currentIndex = 0;
+
+  // 清理所有章节进度
+  Object.keys(localStorage).forEach(k => {
+    if (k === "eng_index" || k.startsWith("eng_index_")) {
+      localStorage.removeItem(k);
+    }
+  });
+
   save();
   updateHome();
 }
@@ -354,60 +406,6 @@ function showBook() {
   renderBook();
   showScreen("book");
 }
-
-function speakText(text, rate=0.86) {
-  if (!("speechSynthesis" in window)) {
-    alert("当前浏览器不支持语音朗读，请使用 Chrome、Edge 或 Safari。");
-    return;
-  }
-
-  // 先停止上一段朗读
-  window.speechSynthesis.cancel();
-
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = "en-US";
-  utter.rate = rate;
-  utter.pitch = 1;
-  utter.volume = 1;
-
-  // 尽量选择英文语音
-  const voices = window.speechSynthesis.getVoices();
-  const enVoice =
-    voices.find(v => v.lang && v.lang.toLowerCase() === "en-us") ||
-    voices.find(v => v.lang && v.lang.toLowerCase().startsWith("en"));
-  if (enVoice) utter.voice = enVoice;
-
-  // iPhone Safari 有时第一次加载声音列表较慢，这里做一次延迟重试
-  if (!voices.length) {
-    setTimeout(() => {
-      const retryVoices = window.speechSynthesis.getVoices();
-      const retryVoice =
-        retryVoices.find(v => v.lang && v.lang.toLowerCase() === "en-us") ||
-        retryVoices.find(v => v.lang && v.lang.toLowerCase().startsWith("en"));
-      if (retryVoice) utter.voice = retryVoice;
-      window.speechSynthesis.speak(utter);
-    }, 120);
-    return;
-  }
-
-  window.speechSynthesis.speak(utter);
-}
-
-function speakSentence() {
-  if (!current) setPool();
-  speakText(current.sent, 0.82);
-}
-
-function speakWord() {
-  if (!current) setPool();
-  speakText(current.w, 0.78);
-}
-
-if ("speechSynthesis" in window) {
-  window.speechSynthesis.getVoices();
-  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
-}
-
 init();
 </script>
 </body>
