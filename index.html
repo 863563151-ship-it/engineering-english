@@ -77,6 +77,31 @@
   .book-card { border:1px solid var(--line); border-radius:16px; padding:14px; background:#fafafa; }
   .book-card b { display:block; font-size:17px; margin-bottom:4px; }
   @media (max-width:360px) { .options { grid-template-columns:1fr; } .word h2 { font-size:32px; } .sentence { font-size:20px; } }
+
+.reader-entry-card {
+  background: linear-gradient(135deg,#eff6ff,#ffffff);
+  border: 1px solid #dbeafe;
+}
+.reader-entry-btn {
+  width:100%;
+  margin-top:12px;
+  background:#2563eb;
+  color:#fff;
+}
+.reader-panel{display:grid;gap:12px}
+.reader-controls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.reader-controls button{font-size:14px;padding:10px 8px}
+.reader-paragraphs{display:grid;gap:10px;margin-top:14px}
+.reader-para{border:1px solid var(--line);background:#fff;border-radius:16px;padding:14px;cursor:pointer;transition:.15s}
+.reader-para.active{border-color:var(--blue);background:#eff6ff;box-shadow:0 8px 20px rgba(37,99,235,.12)}
+.reader-para-title{color:var(--blue);font-size:13px;font-weight:800;margin-bottom:6px}
+.reader-para-en{font-size:17px;line-height:1.55;font-weight:700}
+.reader-para-zh{margin-top:8px;color:var(--muted);font-size:14px;line-height:1.5}
+.reader-status{display:inline-block;border-radius:999px;background:#eef2ff;color:#4453a5;padding:7px 10px;font-size:13px;font-weight:800}
+.reader-speed{width:100%;margin-top:8px}
+.bottom-inner{grid-template-columns:repeat(5,1fr)!important}
+@media(max-width:380px){.reader-controls{grid-template-columns:repeat(2,1fr)}}
+
 </style>
 </head>
 <body>
@@ -103,6 +128,22 @@
         <button class="secondary" onclick="resetCurrentProgress()">重置当前词库</button>
         <button class="primary" onclick="startLearning()">开始学习</button>
       </div>
+    </div>
+
+
+    <div class="card reader-entry-card">
+      <div class="tag">听力训练</div>
+      <h2 style="margin:0 0 6px;">会议纪要连续朗读</h2>
+      <p class="muted" style="margin:0;">第六次、第七次会议纪要按段落朗读。你点哪一段就从哪一段开始；也可以连续播放。</p>
+      <button class="reader-entry-btn" type="button" onclick="openReaderPage()">🎧 进入会议纪要朗读</button>
+    </div>
+
+
+    <div class="card reader-entry-card">
+      <div class="tag">听力训练</div>
+      <h2 style="margin:0 0 6px;">会议纪要连续朗读</h2>
+      <p class="muted" style="margin:0;">第六次、第七次会议纪要按段落朗读。你点哪一段就从哪一段开始；也可以连续播放。</p>
+      <button class="reader-entry-btn" type="button" onclick="openReaderPage()">🎧 进入会议纪要朗读</button>
     </div>
 
     <div class="card">
@@ -161,6 +202,32 @@
       <div class="list" id="wordList"></div>
     </div>
   </section>
+
+  <section id="reader" class="screen">
+    <div class="card">
+      <div class="tag">会议纪要朗读</div>
+      <h2 style="margin:0 0 6px;">像听音乐一样练听力</h2>
+      <p class="muted" style="margin:0;">点哪一段，就从哪一段开始朗读；点击“播放”后会自动连续朗读下一段。</p>
+      <div class="reader-panel">
+        <label class="small muted" style="margin-top:12px;">选择会议纪要</label>
+        <select id="readerBookSelect" class="select" onchange="changeReaderBook()"></select>
+        <div><span class="reader-status" id="readerStatus">未播放</span></div>
+        <label class="small muted">语速：<span id="readerRateText">0.82</span></label>
+        <input id="readerRate" class="reader-speed" type="range" min="0.55" max="1.15" step="0.05" value="0.82" oninput="updateReaderRate()" />
+        <div class="reader-controls">
+          <button class="secondary" type="button" onclick="readerPrev()">上一段</button>
+          <button class="primary" type="button" onclick="readerPlay()">播放</button>
+          <button class="ghost" type="button" onclick="readerPause()">暂停</button>
+          <button class="secondary" type="button" onclick="readerNext()">下一段</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">段落列表</h3>
+      <div id="readerParagraphs" class="reader-paragraphs"></div>
+    </div>
+  </section>
+
 </div>
 
 <div class="bottom">
@@ -169,6 +236,7 @@
     <div class="tab" onclick="startLearning()"><div>📖</div>学习</div>
     <div class="tab" onclick="goSpell()"><div>✍️</div>拼写</div>
     <div class="tab" onclick="showBook()"><div>📚</div>单词本</div>
+    <div class="tab" onclick="openReaderPage()"><div>🎧</div>朗读</div>
   </div>
 </div>
 
@@ -459,6 +527,153 @@ if ("speechSynthesis" in window) {
 }
 
 init();
+
+const MINUTES_READER = {"第六次业主会议纪要": [{"title": "会议与进度", "en": "The agenda included verification of planned works. The planned work progress until the next construction meeting was discussed. The General Contractor submitted a revised detailed schedule in accordance with the contractual deadlines.", "zh": "议程包括计划工作核查；会议讨论了到下次施工会议前的计划工作进展；总包按照合同期限提交了修订后的详细进度计划。"}, {"title": "会议与进度", "en": "The submission date falls within the specified contractual deadline. As of today, the detailed schedule has not been accepted and remains under review. On May 22, the General Contractor submitted HS for re-verification.", "zh": "提交日期在规定的合同期限内；截至目前，详细进度计划尚未被接受，仍在审查中；5月22日，总包提交HS进行重新核查。"}, {"title": "会议与进度", "en": "The Inspectorate submitted comments on the detailed schedule. The Contractor's resources were considered sufficient and adequate for the scope of work. The resources were sufficient and adequate for the scope of work carried out.", "zh": "监理提交了对详细进度计划的意见；承包商资源被认为足以并适合当前工作范围；资源足以满足已实施工作范围。"}, {"title": "树木、绿化与环境", "en": "The felling was carried out in accordance with the obtained RDOŚ decision. A RDOŚ inspection of the felling was conducted. The tree was marked for temporary retention, with possible felling after June 1.", "zh": "砍伐按照取得的RDOŚ决定实施；已对砍伐工作进行RDOŚ检查；该树被标记为临时保留，6月1日后可能砍伐。"}, {"title": "树木、绿化与环境", "en": "Maintenance of the trees designated for retention remains to be completed. Removal of stumps after felling remains to be completed. The ornithologist confirmed that the tree was inhabited.", "zh": "指定保留树木的养护工作仍需完成；砍伐后的树桩清除仍需完成；鸟类专家确认该树有鸟类栖息。"}, {"title": "树木、绿化与环境", "en": "The ornithologist will be visiting next week to assess whether the tree is still inhabited. The Inspectorate emphasizes the need for ongoing submission of waste records. A meeting was held at the construction site with the landscape designer.", "zh": "鸟类专家下周将到场评估该树是否仍有鸟类栖息；监理强调需要持续提交废弃物记录；在施工现场与景观设计师召开了会议。"}, {"title": "树木、绿化与环境", "en": "The designer stated that the yew trees along the S9 fence had been removed. Two versions of the landscape management design are in circulation. The relevant documentation is the greenery management plan attached to the detailed design.", "zh": "设计师指出S9围挡沿线的紫杉树已被移除；目前流转着两个版本的景观管理设计；相关文件是附在详细设计中的绿化管理方案。"}, {"title": "树木、绿化与环境", "en": "The designer is verifying whether removal of the yew trees affects the formal status. The appendix to the felling decision is a graphical appendix. IN will request a written indication regarding which greenery project should be implemented.", "zh": "设计师正在核查紫杉树移除是否影响正式状态；砍伐决定的附件是图形附件；IN将要求书面说明应执行哪一个绿化项目。"}, {"title": "树木、绿化与环境", "en": "The parties discussed the necessary protection measures for the stand to be preserved. The protection and maintenance methods were agreed upon. Pruning is scheduled for a date to be agreed upon.", "zh": "各方讨论了需保留林木的必要保护措施；保护和养护方法已达成一致；修剪计划安排在双方另行确认的日期。"}, {"title": "树木、绿化与环境", "en": "The Engineer-in-Charge must be notified to warn third parties about the work.", "zh": "必须通知主管工程师，以便提醒第三方相关作业。"}, {"title": "BM、车库与结构", "en": "An on-site inspection and inventory of the SM Advocates building were conducted. An on-site inspection and inventory were conducted. An inventory of the building will be prepared.", "zh": "已对SM Advocates建筑进行现场检查和盘点；已进行了现场检查和盘点；将编制该建筑的现状清单。"}, {"title": "BM、车库与结构", "en": "The General Contractor plans to perform structural measurements in the BM building and garage. The meeting discussed the reinforcements and their possible installation methods. The Construction Designer discussed the reinforcements and possible installation methods.", "zh": "总包计划在BM建筑和车库进行结构测量；会议讨论了加固及可能的安装方法；结构设计师讨论了加固及可能的安装方法。"}, {"title": "BM、车库与结构", "en": "The works are consistent with the preliminary schedule for the BM building and garage. Work is underway to prepare the room for the planned heating substation. Steel for installation in the substation room foundations was delivered.", "zh": "相关工作与BM建筑和车库的初步进度计划一致；计划热力站房间的准备工作正在进行；用于热力站房间基础安装的钢材已运抵现场。"}, {"title": "BM、车库与结构", "en": "Flooring removal and dismantling are planned for today. Dismantling work was carried out from May 25 to 29. Demolition of the upper hardening layers was carried out.", "zh": "今天计划进行地面拆除和拆卸；5月25日至29日期间进行了拆卸工作；已进行上部硬化层拆除。"}, {"title": "BM、车库与结构", "en": "From May 11 to 15, demolition of the upper hardening layers was carried out. Steel for installation in the substation room foundations was delivered.", "zh": "5月11日至15日期间进行了上部硬化层拆除；用于热力站房间基础安装的钢材已进场。"}, {"title": "KZM、ZIP与文件流程", "en": "A KZM verification deadline of five business days is acceptable to both parties. The KZM template agreed with the Designer was provided. The ZIP/RFI template was provided after agreement with the Designer.", "zh": "双方均接受KZM五个工作日审核期限；已提供与设计师确认的KZM模板；与设计师确认后提供了ZIP/RFI模板。"}, {"title": "KZM、ZIP与文件流程", "en": "The General Contractor will address its position in writing. The positions of the parties are not aligned. It is necessary to discuss it with the industry designers.", "zh": "总包将以书面形式表达其立场；各方立场并不一致；有必要与专业设计师讨论。"}, {"title": "KZM、ZIP与文件流程", "en": "The parties request the preparation of more detailed assumptions.", "zh": "各方要求编制更详细的假设。"}, {"title": "技术系统与能源", "en": "The issue of probes for the ground heat source remains to be discussed again. The parties requested detailed assumptions regarding the number and depth of probes. The parties requested more detailed assumptions regarding the change in the number and depth of probes.", "zh": "地源热源探针问题仍需再次讨论；各方要求就探针数量和深度提出详细假设；各方要求就探针数量和深度变化提出更详细假设。"}, {"title": "技术系统与能源", "en": "The analysis should show how the change affects the efficiency of the lower heat source. The analysis should show how the change affects the upper heat source. The analysis should show how the change will affect the efficiency of the entire system.", "zh": "分析应说明该变化如何影响下部热源效率；分析应说明该变化如何影响上部热源；分析应说明该变化如何影响整个系统效率。"}, {"title": "技术系统与能源", "en": "The parties asked how the change would affect the parameters of the entire system. MSCDN asked about changing the function of the engine room. The alternative solution creates an entrance to the auxiliary room through the engine room.", "zh": "各方询问该变化将如何影响整个系统参数；MSCDN询问了改变机房功能的问题；替代方案是在机房内设置通往辅助房间的入口。"}, {"title": "技术系统与能源", "en": "The change would allow for the preservation of the wall with the logo. The Designer proposed an alternative solution without changing the function of the rooms. The Designer is verifying the change for compliance with the fire protection expert's report.", "zh": "该变更将允许保留带标志的墙体；设计师提出了不改变房间功能的替代方案；设计师正在核查该变更是否符合消防专家报告。"}, {"title": "技术系统与能源", "en": "The Designer is awaiting the fire protection expert's opinion. The color scheme for the S9 building is missing from the provided documentation. The reconstruction of the telecommunications installation is related to the subject of the investment.", "zh": "设计师正在等待消防专家意见；所提供文件中缺少S9建筑的配色方案；通信安装改造与本投资项目有关。"}, {"title": "技术系统与能源", "en": "The existing telecommunications infrastructure will be moved outside the outline of the designed buildings. Lowering the telecommunications pit on Świętojerska Street is related to the investment. The valuation was included in the offer cost estimate.", "zh": "现有通信基础设施将迁至设计建筑轮廓之外；降低Świętojerska街通信井与该投资有关；该范围价值包含在投标成本估算中。"}, {"title": "技术系统与能源", "en": "The offer cost estimate was prepared based on the provided bills of quantities. Moving the value to the basic order will not affect the completion dates. Formal and legal analysis of this matter is ongoing.", "zh": "报价成本估算基于提供的工程量清单编制；将该价值转入基本范围不会影响完成期限；该事项的正式法律分析正在进行。"}, {"title": "HSE与现场行政", "en": "Outdoor extension cords should use the required protection of at least IP44. NI once again draws attention to the need to seal the fence. It should be one and the same competent person directly responsible for H&S and fire protection.", "zh": "室外延长线应至少采用IP44防护等级；NI再次提醒需要封闭围挡；应由同一名合格人员直接负责H&S和消防事项。"}, {"title": "HSE与现场行政", "en": "Another person with the same competences should be delegated within 8 hours. The GC should delegate another person within 8 hours.", "zh": "应在8小时内委派具备同等能力的其他人员；总包应在8小时内委派另一人。"}, {"title": "合同、手续与接驳", "en": "The General Contractor will prepare an inventory of the inspections completed. The Contractor will make arrangements regarding the conditions of use of utilities. The Detailed Schedule takes into account the archaeological research period.", "zh": "总包将编制已完成查验的清单；承包商将就公用设施使用条件进行安排；详细进度计划考虑了考古研究周期。"}, {"title": "合同、手续与接驳", "en": "The General Contractor will propose a platform for managing construction documentation and processes. The meeting discussed the technical capabilities of the proposed CDE platform. The Binderless-CDE platform should be indicated as accepted.", "zh": "总包将提出用于管理施工文件和流程的平台；会议讨论了拟议CDE平台的技术能力；Binderless-CDE平台应视为已接受。"}, {"title": "合同、手续与接驳", "en": "Supervision facilities must be made available no later than June 9. The monitoring assumptions are currently being reviewed. The heating network agreement is contingent on the signing of an easement.", "zh": "监理设施必须不晚于6月9日提供；监测假设目前正在审查中；热力管网协议取决于地役权的签署。"}, {"title": "合同、手续与接驳", "en": "The annex with Stoen has been signed. Due to the space limitations of the construction site, the GC is optimizing solutions. Z will forward the application submitted to MKWZ to amend the decision regarding archaeological works.", "zh": "与Stoen的补充协议已经签署；由于施工现场面积限制，总包正在优化方案；Z将转发提交给MKWZ、用于修改考古工作决定的申请。"}, {"title": "合同、手续与接驳", "en": "Z points out the need to include a sapper. Z points out the need to correct a calculation error. Z provided GW with the decision of MKWZ.", "zh": "Z指出需要考虑工兵/排爆人员；Z指出需要纠正计算错误；Z向GW提供了MKWZ决定。"}, {"title": "合同、手续与接驳", "en": "IN informed that the drilling required archaeological supervision. GC submitted corrected subcontracting agreement templates for verification. The document is closely related to the material and deadline schedule.", "zh": "IN告知钻孔需要考古监督；GC提交了修正后的分包协议模板进行审核；该文件与材料和期限计划密切相关。"}, {"title": "合同、手续与接驳", "en": "The General Contractor did not submit the Schedule for presentation and agreement of Documentation. Z will lend GC the original construction design.", "zh": "总包未提交文件报审和确认计划；Z将把原版施工设计借给GC。"}], "第七次业主会议纪要": [{"title": "会议与监理变更", "en": "From June 8, the investor's supervision is performed by MJL. From June 8, the investor's supervision is performed by MJL. The minutes are for Construction Meeting No. 07.", "zh": "自6月8日起，投资人监理由MJL执行；自6月8日起，投资人监理由MJL执行；本纪要为第七次施工会议纪要。"}, {"title": "会议与监理变更", "en": "The next coordination meeting will take place on June 12 at 9:00 a.m. From July, meetings will be held every two weeks. The weekly meetings will be restored after the completion of archaeological works.", "zh": "下次协调会将于6月12日上午9点召开；从7月起，会议将每两周召开一次；考古工作完成后将恢复周会。"}, {"title": "会议与监理变更", "en": "Due to the small scope of work, the number of people participating in person will be limited. The number of people participating in person will be limited. Due to the small scope of work, attendance will be limited.", "zh": "由于现场工作范围较小，现场参会人数将受到限制；现场参会人数将受到限制；由于现场工作范围较小，参会人数将受到限制。"}, {"title": "考古、PK与进度", "en": "A meeting is planned regarding the conduct of archaeological work. The General Contractor plans to commence archaeological work on the investment site. The General Contractor will submit a workshop design for strengthening walls.", "zh": "计划召开关于考古工作实施的会议；总包计划在投资现场开始考古工作；总包将提交墙体加固深化设计。"}, {"title": "考古、PK与进度", "en": "The General Contractor will submit a workshop design for strengthening walls. As of today, the detailed schedule was not accepted. On June 11, IN sent comments to GW on the presented HS.", "zh": "总包将提交墙体加固深化设计；截至目前，详细进度计划尚未被接受；6月11日，IN就提交的HS向GW发送了意见。"}, {"title": "考古、PK与进度", "en": "Necessity Protocol 1 for archaeology is being processed. PK has been accepted and the contract will be signed by June 15. The parties' positions regarding the content of the protocol have been agreed.", "zh": "考古相关的一号必要性协议正在办理中；PK已被接受，合同将在6月15日前签署；各方关于协议内容的立场已经达成一致。"}, {"title": "考古、PK与进度", "en": "The contract will be signed by June 15. Weekly meetings will be restored after the completion of archaeological works. A meeting is planned regarding the conduct of archaeological work.", "zh": "合同将在6月15日前签署；考古工作完成后将恢复周会；计划召开关于考古工作实施的会议。"}, {"title": "地源热泵与探孔", "en": "A construction meeting regarding the probes is scheduled for July 1. More detailed assumptions are required regarding the change in the number and depth of probes. The analysis should show how the change will affect the efficiency of the lower and upper heat sources.", "zh": "关于探孔的施工会议计划于7月1日召开；需要就探孔数量和深度变化提出更详细假设；分析应说明该变化如何影响上下部热源效率。"}, {"title": "地源热泵与探孔", "en": "The Contractor was asked whether it is committed to submitting an analysis in the context of the upper source. The parties asked how the change will affect the parameters and efficiency of the entire system. The Contractor was asked whether it is committed to submitting an analysis.", "zh": "要求承包商说明是否承诺提交上部热源方面的分析；各方询问该变化将如何影响整个系统参数和效率；要求承包商说明是否承诺提交分析。"}, {"title": "材料、质量与施工", "en": "GW submitted documents for silicate blocks. There are no concerns regarding the quality of the materials as of today. The materials have not yet been delivered, therefore there is no possibility of reference.", "zh": "GW提交了硅酸盐砌块文件；截至目前，对材料质量没有疑虑；材料尚未交付，因此无法进行对照。"}, {"title": "材料、质量与施工", "en": "Steel for installation in the foundations was delivered to the site. The steel was delivered in accordance with the design requirements for the S9 building. Work was carried out on additional protection and partitioning.", "zh": "安装用钢材已运至现场；钢材按照S9建筑设计要求运抵现场；已进行附加防护和分隔工作。"}, {"title": "材料、质量与施工", "en": "Organizational work was carried out on partitions and security measures. There are no concerns regarding the quality of the materials as of today. The materials have not yet been delivered, so there is no possibility of reference.", "zh": "已开展隔断和安全防护措施相关组织工作；截至目前，对材料质量没有疑虑；材料尚未交付，因此无法进行对照。"}, {"title": "分包与合规", "en": "The value of the subcontract is less than 0.5% of the value of the main contract. The subcontract is less than 0.5% of the value of the main contract. The General Contractor will send the Ordering Party a signed order or contract.", "zh": "分包金额低于主合同金额的0.5%；该分包金额低于主合同金额的0.5%；总包将向业主发送已签署订单或合同。"}, {"title": "分包与合规", "en": "GC sent the declaration on May 18. The felling works are being carried out with the participation of subcontractor Biotop. As of today, there are no reported subcontractors.", "zh": "GC已于5月18日发送声明；砍伐工作由Biotop分包商参与实施；截至目前，没有已报告的分包商。"}, {"title": "分包与合规", "en": "The signed order or contract will confirm the above with the Ordering Party.", "zh": "已签署订单或合同将向业主确认上述事项。"}, {"title": "HSE与现场行政", "en": "IN proposes to mark the vicinity of the construction site with information boards in terms of the supply plan. Information boards should cover the supply plan and vehicular traffic. NI requests the strict use of the required protection of at least IP44.", "zh": "IN建议在施工现场附近设置与供应计划相关的信息牌；信息牌应涵盖供应计划和车辆交通；NI要求严格使用至少IP44的防护。"}, {"title": "HSE与现场行政", "en": "H&S duties cover organizational and preparatory works, installation and finishing. The competent person is responsible for H&S during installation of equipment in the building. The Ordering Party requests the appointment of a Project Administrator for the Secretariat of the Construction Management Office.", "zh": "H&S职责覆盖组织准备、安装和装修等工作；该合格人员负责建筑内设备安装期间的H&S；业主要求任命施工管理办公室秘书处项目管理员。"}, {"title": "HSE与现场行政", "en": "The Project Administrator should be permanently present at the construction management office. If the employee is absent, the GC should delegate another person within 8 hours. Until then, the Contractor is obligated to provide a space enabling coordination meetings.", "zh": "项目管理员应常驻施工管理办公室；如该员工缺勤，GC应在8小时内委派另一人；在此之前，承包商有义务提供可召开协调会议的场所。"}, {"title": "HSE与现场行政", "en": "The GC has prepared temporary rooms for the Inspectorate in part of the S9 building. The office space was relocated to the target premises in the building at Telakowska Street.", "zh": "GC已在S9建筑部分区域为监理准备临时房间；办公空间迁至Telakowska街建筑内的目标办公场所。"}, {"title": "合同、接驳与其他", "en": "GW requested a document confirming termination of the contract for the supply of gas fuel. GW requested a document confirming termination of the contract. Z requests GW to confirm the deadlines contained in the Stoen annex.", "zh": "GW要求提供确认燃气供应合同终止的文件；GW要求提供确认合同终止的文件；Z要求GW确认Stoen附件中列明的期限。"}, {"title": "合同、接驳与其他", "en": "GW is negotiating the lease of space intended for the construction office. The area requires renovation, which will take approximately 1.5 months. Z draws attention to the need to verify the full construction documentation.", "zh": "GW正在谈判施工办公室空间租赁；该区域需要装修，预计需要约1.5个月；Z提醒需要核查完整施工文件。"}, {"title": "合同、接驳与其他", "en": "Tender documentation includes answers to questions and additions. The schedule concerns documentation of technical and technological solutions. The document was not submitted in paper version.", "zh": "招标文件包括答疑回复和补充文件；该计划涉及技术和工艺方案文件；该文件未提交纸质版。"}, {"title": "合同、接驳与其他", "en": "GW refers to the construction manager's declaration of acceptance of duties. The position of construction manager is confirmed by the notification submitted to PINB. GC will make a copy of the design and provide it to Z.", "zh": "GW提及施工经理接受职责的声明；施工经理职位由提交给PINB的通知确认；GC将复制该设计并提供给Z。"}, {"title": "合同、接驳与其他", "en": "The parties agreed to further detail the schedule regarding greenery in working mode. GW will not introduce additional changes in this respect in the detailed schedule.", "zh": "各方同意以工作模式进一步细化绿化进度；GW不会在详细进度计划中就此引入额外变更。"}]};
+let readerBook = localStorage.getItem("reader_book") || "第六次业主会议纪要";
+let readerIndex = Number(localStorage.getItem("reader_index__" + readerBook) || 0);
+let readerPlaying = false;
+let readerRate = Number(localStorage.getItem("reader_rate") || 0.82);
+
+function openReaderPage() {
+  initReader();
+  document.querySelectorAll(".screen").forEach(function(s) { s.classList.remove("active"); });
+  var reader = document.getElementById("reader");
+  if (reader) reader.classList.add("active");
+  document.querySelectorAll(".tab").forEach(function(t) { t.classList.remove("active"); });
+  document.querySelectorAll(".tab").forEach(function(t) {
+    if (t.textContent.indexOf("朗读") !== -1) t.classList.add("active");
+  });
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+function initReader() {
+  var sel = document.getElementById("readerBookSelect");
+  if (!sel) return;
+  var books = Object.keys(MINUTES_READER);
+  sel.innerHTML = books.map(function(b) { return '<option value="' + b + '">' + b + '</option>'; }).join("");
+  if (books.indexOf(readerBook) === -1) readerBook = books[0];
+  sel.value = readerBook;
+  var rate = document.getElementById("readerRate");
+  if (rate) rate.value = readerRate;
+  updateReaderRate();
+  renderReaderParagraphs();
+}
+
+function changeReaderBook() {
+  localStorage.setItem("reader_index__" + readerBook, readerIndex);
+  readerBook = document.getElementById("readerBookSelect").value;
+  localStorage.setItem("reader_book", readerBook);
+  readerIndex = Number(localStorage.getItem("reader_index__" + readerBook) || 0);
+  readerPause();
+  renderReaderParagraphs();
+}
+
+function updateReaderRate() {
+  var rate = document.getElementById("readerRate");
+  if (rate) {
+    readerRate = Number(rate.value);
+    localStorage.setItem("reader_rate", readerRate);
+  }
+  var txt = document.getElementById("readerRateText");
+  if (txt) txt.textContent = readerRate.toFixed(2);
+}
+
+function renderReaderParagraphs() {
+  var box = document.getElementById("readerParagraphs");
+  if (!box) return;
+  var paras = MINUTES_READER[readerBook] || [];
+  box.innerHTML = paras.map(function(p, i) {
+    return '<div class="reader-para ' + (i === readerIndex ? 'active' : '') + '" onclick="readerPlayFrom(' + i + ')" id="readerPara_' + i + '">' +
+      '<div class="reader-para-title">' + (i+1) + ' / ' + paras.length + ' · ' + escapeHTML(p.title || readerBook) + '</div>' +
+      '<div class="reader-para-en">' + escapeHTML(p.en) + '</div>' +
+      '<div class="reader-para-zh">' + escapeHTML(p.zh || '') + '</div>' +
+      '</div>';
+  }).join("");
+  updateReaderStatus();
+}
+
+function updateReaderStatus() {
+  var paras = MINUTES_READER[readerBook] || [];
+  var status = document.getElementById("readerStatus");
+  if (status) {
+    status.textContent = (readerPlaying ? "正在播放" : "未播放") + " · " + readerBook + " · " + Math.min(readerIndex+1, paras.length) + " / " + paras.length;
+  }
+  document.querySelectorAll(".reader-para").forEach(function(x) { x.classList.remove("active"); });
+  var active = document.getElementById("readerPara_" + readerIndex);
+  if (active) {
+    active.classList.add("active");
+    if (readerPlaying) active.scrollIntoView({behavior:"smooth", block:"center"});
+  }
+}
+
+function readerSpeakCurrent() {
+  var paras = MINUTES_READER[readerBook] || [];
+  if (!paras.length) return;
+  if (readerIndex >= paras.length) readerIndex = 0;
+  localStorage.setItem("reader_index__" + readerBook, readerIndex);
+  updateReaderStatus();
+
+  if (!("speechSynthesis" in window)) {
+    alert("当前浏览器不支持语音朗读，请使用 Chrome、Edge 或 Safari。");
+    return;
+  }
+  window.speechSynthesis.cancel();
+  var utter = new SpeechSynthesisUtterance(paras[readerIndex].en);
+  utter.lang = "en-US";
+  utter.rate = readerRate;
+  utter.pitch = 1;
+  utter.volume = 1;
+  var voices = window.speechSynthesis.getVoices();
+  var enVoice = voices.find(function(v) { return v.lang && v.lang.toLowerCase() === "en-us"; }) || voices.find(function(v) { return v.lang && v.lang.toLowerCase().startsWith("en"); });
+  if (enVoice) utter.voice = enVoice;
+  utter.onend = function() {
+    if (readerPlaying) {
+      var ps = MINUTES_READER[readerBook] || [];
+      readerIndex = (readerIndex + 1) % ps.length;
+      localStorage.setItem("reader_index__" + readerBook, readerIndex);
+      setTimeout(readerSpeakCurrent, 250);
+    }
+  };
+  window.speechSynthesis.speak(utter);
+}
+
+function readerPlay() {
+  readerPlaying = true;
+  readerSpeakCurrent();
+}
+
+function readerPlayFrom(i) {
+  readerIndex = i;
+  localStorage.setItem("reader_index__" + readerBook, readerIndex);
+  readerPlay();
+}
+
+function readerPause() {
+  readerPlaying = false;
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  updateReaderStatus();
+}
+
+function readerNext() {
+  var paras = MINUTES_READER[readerBook] || [];
+  if (!paras.length) return;
+  readerIndex = (readerIndex + 1) % paras.length;
+  localStorage.setItem("reader_index__" + readerBook, readerIndex);
+  if (readerPlaying) readerSpeakCurrent(); else updateReaderStatus();
+}
+
+function readerPrev() {
+  var paras = MINUTES_READER[readerBook] || [];
+  if (!paras.length) return;
+  readerIndex = (readerIndex - 1 + paras.length) % paras.length;
+  localStorage.setItem("reader_index__" + readerBook, readerIndex);
+  if (readerPlaying) readerSpeakCurrent(); else updateReaderStatus();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  initReader();
+});
+
 </script>
 </body>
 </html>
